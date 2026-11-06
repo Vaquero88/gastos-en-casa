@@ -316,7 +316,7 @@ function renderSecondaryViews(result) {
   document.querySelectorAll('[data-category-filter]').forEach(button => {
     const selected = button.dataset.categoryFilter === 'TODO'
       ? movementCategories === null
-      : movementCategories?.has(button.dataset.categoryFilter) || false;
+      : movementCategories === null || movementCategories.has(button.dataset.categoryFilter);
     button.classList.toggle('active', selected);
     button.setAttribute('aria-pressed', String(selected));
   });
@@ -539,7 +539,7 @@ document.getElementById('prevMonth').onclick = () => moveMonth(-1);
 document.getElementById('nextMonth').onclick = () => moveMonth(1);
 document.getElementById('currentMonth').onclick = () => { selectedYear = now.getFullYear(); selectedMonth = now.getMonth(); render(); };
 document.getElementById('movementDay').innerHTML += Array.from({ length: 31 }, (_, index) => `<option value="${index + 1}">${index + 1}</option>`).join('');
-document.getElementById('categoryFilters').innerHTML = `<button type="button" class="category-filter active" data-category-filter="TODO" aria-pressed="true">TODO</button>` + Object.keys(CATEGORIES).map(category => `<button type="button" class="category-filter" data-category-filter="${escapeHtml(category)}" aria-pressed="false">${escapeHtml(category)}</button>`).join('');
+document.getElementById('categoryFilters').innerHTML = `<button type="button" class="category-filter active" data-category-filter="TODO" aria-pressed="true">TODOS</button>` + Object.keys(CATEGORIES).map(category => `<button type="button" class="category-filter active" data-category-filter="${escapeHtml(category)}" aria-pressed="true">${escapeHtml(category)}</button>`).join('');
 document.querySelectorAll('[data-category-filter]').forEach(button => button.addEventListener('click', () => {
   const category = button.dataset.categoryFilter;
   if (category === 'TODO') movementCategories = null;
