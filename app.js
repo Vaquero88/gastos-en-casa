@@ -25,7 +25,7 @@ let currentUser = null;
 let currentMember = null;
 let loadedUserId = null;
 let sessionLoadSequence = 0;
-let db = { openingBalance: 0, initialSavings: 0, initialTito: 0, initialSheila: 0, movements: [] };
+let db = { openingBalance: 0, initialSavings: 0, initialConchiDebt: 0, initialTito: 0, initialSheila: 0, movements: [] };
 
 const authGate = document.getElementById('authGate');
 const appShell = document.getElementById('appShell');
@@ -94,6 +94,36 @@ function totals() {
     .reduce((sum, item) => sum + (item.type === 'ingreso' ? item.amount : -item.amount), 0);
   return { list, income, expense, expenses, balance };
 }
+function renderHouseholdBalances() {
+  const titoAdds = db.movements
+    .filter(item => item.type === 'ingreso' && item.person === 'Tito')
+    .reduce((sum, item) => sum + item.amount, 0);
+  const sheilaAdds = db.movements
+    .filter(item => item.type === 'ingreso' && item.person === 'Sheila')
+    .reduce((sum, item) => sum + item.amount, 0);
+  const titoTotal = db.initialTito + titoAdds;
+  const sheilaTotal = db.initialSheila + sheilaAdds;
+  const difference = titoTotal - sheilaTotal;
+  const huchaMovement = db.movements
+    .filter(item => item.type === 'gasto' && item.category === 'Fijos' && item.subcategory === 'Ahorros Hucha')
+    .reduce((sum, item) => sum + item.amount, 0);
+  const conchiPaid = db.movements
+    .filter(item => item.type === 'gasto' && item.category === 'Fijos' && item.subcategory === 'Préstamo Conchi')
+    .reduce((sum, item) => sum + item.amount, 0);
+  document.getElementById('lifetimeTito').textContent = euro(titoTotal);
+  document.getElementById('lifetimeTitoDetail').textContent = `Inicio: ${euro(db.initialTito)} · desde 2026: ${euro(titoAdds)}`;
+  document.getElementById('lifetimeSheila').textContent = euro(sheilaTotal);
+  document.getElementById('lifetimeSheilaDetail').textContent = `Inicio: ${euro(db.initialSheila)} · desde 2026: ${euro(sheilaAdds)}`;
+  document.getElementById('differenceTito').textContent = `${difference >= 0 ? '+' : '−'}${euro(Math.abs(difference))}`;
+  document.getElementById('differenceSheila').textContent = `${difference <= 0 ? '+' : '−'}${euro(Math.abs(difference))}`;
+  document.getElementById('differenceCaption').textContent = difference === 0
+    ? 'Los dos habéis aportado lo mismo'
+    : difference > 0 ? 'Tito ha aportado más' : 'Sheila ha aportado más';
+  document.getElementById('huchaBalance').textContent = euro(db.initialSavings + huchaMovement);
+  document.getElementById('huchaDetail').textContent = `Inicial: ${euro(db.initialSavings)} · movimientos: ${euro(huchaMovement)}`;
+  document.getElementById('conchiBalance').textContent = euro(db.initialConchiDebt - conchiPaid);
+  document.getElementById('conchiDetail').textContent = `Deuda inicial: ${euro(db.initialConchiDebt)} · pagos: ${euro(conchiPaid)}`;
+}
 
 async function activateSession(session) {
   if (!session || !supabaseClient) return;
@@ -115,7 +145,7 @@ async function activateSession(session) {
     }
     const [{ data: household, error: householdError }, { data: rows, error: movementsError }] = await Promise.all([
       supabaseClient.from('casa_hogares')
-        .select('id,nombre,saldo_inicial,hucha_inicial,aportacion_inicial_tito,aportacion_inicial_sheila')
+        .select('id,nombre,saldo_inicial,hucha_inicial,deuda_conchi_inicial,aportacion_inicial_tito,aportacion_inicial_sheila')
         .eq('id', member.hogar_id).single(),
       supabaseClient.from('casa_movimientos')
         .select('*').eq('hogar_id', member.hogar_id).eq('archivado', false)
@@ -130,6 +160,7 @@ async function activateSession(session) {
     db = {
       openingBalance: Number(household.saldo_inicial || 0),
       initialSavings: Number(household.hucha_inicial || 0),
+      initialConchiDebt: Number(household.deuda_conchi_inicial || 0),
       initialTito: Number(household.aportacion_inicial_tito || 0),
       initialSheila: Number(household.aportacion_inicial_sheila || 0),
       movements: (rows || []).map(mapFromDatabase),
@@ -172,6 +203,7 @@ function render() {
   document.getElementById('netValue').textContent = euro(result.income - result.expense);
   document.getElementById('balanceCaption').textContent = `Saldo inicial: ${euro(db.openingBalance)}`;
   document.getElementById('expenseCount').textContent = `${result.expenses.length} ${result.expenses.length === 1 ? 'movimiento' : 'movimientos'}`;
+  renderHouseholdBalances();
   const byPerson = { Tito: 0, Sheila: 0, Varios: 0 };
   result.list.filter(item => item.type === 'ingreso').forEach(item => {
     byPerson[item.person] = (byPerson[item.person] || 0) + item.amount;
