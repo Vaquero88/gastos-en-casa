@@ -412,7 +412,13 @@ document.getElementById('authForm').addEventListener('submit', async event => {
   });
   button.disabled = false;
   if (error) {
-    authMessage.textContent = 'No se pudo enviar el enlace. Inténtalo de nuevo.';
+    if (error.code === 'over_email_send_rate_limit') {
+      authMessage.textContent = 'Se alcanzó el límite de correos de acceso de Supabase. Espera un poco antes de volver a pedirlo.';
+    } else if (error.code === 'email_address_not_authorized') {
+      authMessage.textContent = 'Supabase no permite enviar correos a esta dirección con el servicio de prueba. Hace falta configurar un proveedor de correo.';
+    } else {
+      authMessage.textContent = 'No se pudo enviar el enlace. Inténtalo de nuevo.';
+    }
     authMessage.classList.add('error');
     console.error('Error de inicio de sesión:', error);
     return;
