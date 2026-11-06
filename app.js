@@ -1,737 +1,306 @@
-const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-const CATEGORIES = {
-  Fijos: ['Electricidad','Agua','Gas','Comunidad','Comunicaciones','TV','Seguros','Alarma','Ahorros Hucha','PrÃ©stamo Conchi','IBI y basura','Hipoteca','Financiaciones','Otros fijos'],
-  Comida: ['Supermercado','Comida domicilio','Otros comida'],
-  Ocio: ['Viajes','Tomar algo','Otros ocio'],
-  Hogar: ['Mobiliario','ElectrodomÃ©sticos','Mantenimiento','Otros hogar'],
-  Salud: ['Medicinas','Servicios','Otros salud'],
-  Transporte: ['Mantenimiento','Seguros vehÃ­culo','Combustible','Taxi / bus / tren','Otros transporte'],
-  Animales: ['Comida','Veterinario','PeluquerÃ­a','Otros animales'],
-  Otros: ['Otros'],
-};
-const HOUSEHOLD_ID = 'f8578860-5cab-48bf-8643-6c6ca874036c';
-const IS_LOCAL_FILE = window.location.protocol === 'file:';
-const LOCAL_STORAGE_KEY = 'casa-en-comun-local-v1';
-const now = new Date();
-const supabaseClient = !IS_LOCAL_FILE && window.supabase?.createClient(
-  window.CASA_SUPABASE_URL,
-  window.CASA_SUPABASE_PUBLISHABLE_KEY,
-);
+YªçŠx-®éÜj×¢ëiºÚ+Š§j[h‘éÜ¢éí×~üİ:-jZ.¶›­–)Ş³V6öç7BÔôåD…2Ò²tVæW&òrÂtfV'&W&òrÂtÖ'¦òrÂt'&–ÂrÂtÖ–òrÂt§Væ–òrÂt§VÆ–òrÂtv÷7FòrÂu6WF–VÖ'&RrÂtö7GV'&RrÂtæ÷f–VÖ'&RrÂtF–6–VÖ'&RuÓ°¦6öç7B4DTtõ$”U2Ò°¢f–¦÷3¢²tVÆV7G&–6–FBrÂtwVrÂtv2rÂt6ö×Væ–FBrÂt6ö×Væ–66–öæW2rÂuEbrÂu6VwW&÷2rÂtÆ&ÖrÂt†÷'&÷2‡V6†rÂu,:—7FÖò6öæ6†’rÂt”$’’&7W&rÂt†—÷FV6rÂtf–ææ6–6–öæW2rÂt÷G&÷2f–¦÷2uÒÀ¢6öÖ–F¢²u7WW&ÖW&6FòrÂt6öÖ–FFöÖ–6–Æ–òrÂt÷G&÷26öÖ–FuÒÀ¢ö6–ó¢²uf–¦W2rÂuFöÖ"ÆvòrÂt÷G&÷2ö6–òuÒÀ¢†öv#¢²tÖö&–Æ–&–òrÂtVÆV7G&öFöÜ:—7F–6÷2rÂtÖçFVæ–Ö–VçFòrÂt÷G&÷2†öv"uÒÀ¢6ÇVC¢²tÖVF–6–æ2rÂu6W'f–6–÷2rÂt÷G&÷26ÇVBuÒÀ¢G&ç7÷'FS¢²tÖçFVæ–Ö–VçFòrÂu6VwW&÷2fVŒ:Ö7VÆòrÂt6öÖ'W7F–&ÆRrÂuF†’ò'W2òG&VârÂt÷G&÷2G&ç7÷'FRuÒÀ¢æ–ÖÆW3¢²t6öÖ–FrÂufWFW&–æ&–òrÂuVÇWVW,:ÖrÂt÷G&÷2æ–ÖÆW2uÒÀ¢÷G&÷3¢²t÷G&÷2uÒÀ§Ó°¦6öç7B„õU4T„ôÄEô”BÒvcƒSsƒƒcÓV6"ÓC†&bÓƒcC2Óf3f6ƒsC3f2s°¦6öç7B•5ôÄô4Åôd”ÄRÒv–æF÷ræÆö6F–öâç&÷Fö6öÂÓÓÒvf–ÆS¢s°¦6öç7BÄô4Åõ5Dõ$tUô´U’Òv66ÖVâÖ6ö×VâÖÆö6Â×cs°¦6öç7Bæ÷rÒæWrFFR‚“°¦6öç7B7W&6T6Æ–VçBÒ•5ôÄô4Åôd”ÄRbbv–æF÷rç7W&6Sòæ7&VFT6Æ–VçB€¢v–æF÷rä44õ5U$4UõU$ÂÀ¢v–æF÷rä44õ5U$4UõT$Ä•4„$ÄUô´U’À¢“° ¦ÆWB6VÆV7FVE–V"Òæ÷rævWDgVÆÅ–V"‚“°¦ÆWB6VÆV7FVDÖöçF‚Òæ÷rævWDÖöçF‚‚“°¦ÆWB7F—fUf–WrÒv–æ–6–òs°¦ÆWBÖ÷fVÖVçDf–ÇFW"ÒwFöF÷2s°¦ÆWBÖ÷fVÖVçD6FVv÷&–W2ÒçVÆÃ°¦ÆWBVF—F–æt–BÒçVÆÃ°¦ÆWB7W'&VçEW6W"ÒçVÆÃ°¦ÆWB7W'&VçDÖVÖ&W"ÒçVÆÃ°¦ÆWBÆöFVEW6W$–BÒçVÆÃ°¦ÆWB6W76–öäÆöE6WVVæ6RÒ°¦ÆWBF"Ò²÷Væ–æt&Ææ6S¢Â–æ—F–Å6f–æw3¢Â–æ—F–Ä6öæ6†”FV'C¢Â–æ—F–ÅF—Fó¢Â–æ—F–Å6†V–Æ¢ÂÖ÷fVÖVçG3¢µÒÓ° ¦6öç7BWF„vFRÒFö7VÖVçBævWDVÆVÖVçD'”–B‚vWF„vFRr“°¦6öç7B6†VÆÂÒFö7VÖVçBævWDVÆVÖVçD'”–B‚v6†VÆÂr“°¦6öç7BWF„ÖW76vRÒFö7VÖVçBævWDVÆVÖVçD'”–B‚vWF„ÖW76vRr“°¦6öç7BF–ÆörÒFö7VÖVçBævWDVÆVÖVçD'”–B‚vÖ÷fVÖVçDF–Æörr“°¦6öç7Bf÷&ÒÒFö7VÖVçBævWDVÆVÖVçD'”–B‚vÖ÷fVÖVçDf÷&Òr“° ¦gVæ7F–öâWW&ò‡fÇVR’°¢&WGW&âæWr–çFÂäçVÖ&W$f÷&ÖB‚vW2ÔU2rÂ²7G–ÆS¢v7W'&Væ7’rÂ7W'&Væ7“¢tUU"rÒ’æf÷&ÖB‡fÇVRÇÂ“°§Ğ¦gVæ7F–öâÖöçF„æÖR†ÖöçF‚Ò6VÆV7FVDÖöçF‚’²&WGW&âÔôåD…5¶ÖöçF…Ó²Ğ¦gVæ7F–öâÖöçF„¶W’‡–V"ÂÖöçF‚’²&WGW&â–V"¢"²ÖöçFƒ²Ğ¦gVæ7F–öâFFTf÷$–çWB‚’°¢6öç7B–V"Òæ÷rævWDgVÆÅ–V"‚“°¢6öç7BÖöçF‚Ò7G&–ær†æ÷rævWDÖöçF‚‚’²’çE7F'Bƒ"Âsr“°¢6öç7BF’Ò7G&–ær†æ÷rævWDFFR‚’’çE7F'Bƒ"Âsr“°¢&WGW&âG·–V'ÒÒG¶ÖöçF‡ÒÒG¶F—Ö°§Ğ¦gVæ7F–öâf—†VDÖöçF†Ç•FV×ÆFW2‡–V"Ò6VÆV7FVE–V"ÂÖöçF‚Ò6VÆV7FVDÖöçF‚’°¢6öç7B&Wf–÷W2ÒæWrFFR‡–V"ÂÖöçF‚ÒÂ“°¢6öç7B&Wf–÷W4æÖRÒÔôåD…5·&Wf–÷W2ævWDÖöçF‚‚•Ó°¢6öç7B&Wf–÷W5–V%6†÷'BÒ7G&–ær‡&Wf–÷W2ævWDgVÆÅ–V"‚’’ç6Æ–6R‚Ó"“°¢6öç7BÖöçF„öfg6WBÒ‡–V"Ò##b’¢"²†ÖöçF‚Ò“°¢6öç7B‡V6†6÷VçBÒ3²ÖöçF„öfg6WC°¢6öç7B6öæ6†”6÷VçBÒc‚²ÖöçF„öfg6WC°¢6öç7BÖ÷'FvvT6÷VçBÒc‚²ÖöçF„öfg6WC°¢6öç7B—FV×2Ò°¢²–C¢v÷'F6–öâ×F—FòrÂFW67&—F–öã¢t÷'F6œ;6âÖVç7VÂrÂG—S¢v–æw&W6òrÂ6FVv÷'“¢t–æw&W6÷2rÂ7V&6FVv÷'“¢uF—FòrÂW'6öã¢uF—FòrÂÖ÷VçC¢ƒÒÀ¢²–C¢v÷'F6–öâ×6†V–ÆrÂFW67&—F–öã¢t÷'F6œ;6âÖVç7VÂƒsS³S†÷'&ò’rÂG—S¢v–æw&W6òrÂ6FVv÷'“¢t–æw&W6÷2rÂ7V&6FVv÷'“¢u6†V–ÆrÂW'6öã¢u6†V–ÆrÂÖ÷VçC¢ƒÒÀ¢²–C¢v6ö×Væ–FBrÂFW67&—F–öã¢t6ö×Væ–FBrÂG—S¢vv7FòrÂ6FVv÷'“¢tf–¦÷2rÂ7V&6FVv÷'“¢t6ö×Væ–FBrÂÖ÷VçC¢“rãcÒÀ¢²–C¢v†÷'&÷2Ö‡V6†rÂFW67&—F–öã¢†÷'&÷2‡V6†G¶‡V6†6÷VçGÖÂG—S¢vv7FòrÂ6FVv÷'“¢tf–¦÷2rÂ7V&6FVv÷'“¢t†÷'&÷2‡V6†rÂÖ÷VçC¢SÒÀ¢Ó°¢–b†6öæ6†”6÷VçBãÒbb6öæ6†”6÷VçBÃÒ3B’—FV×2çW6‚‡²–C¢w&W7FÖòÖ6öæ6†’rÂFW67&—F–öã¢,:—7FÖò6öæ6†’Gµ7G&–ær†6öæ6†”6÷VçB’çE7F'Bƒ2Âsr—ÒFR3FÂG—S¢vv7FòrÂ6FVv÷'“¢tf–¦÷2rÂ7V&6FVv÷'“¢u,:—7FÖò6öæ6†’rÂÖ÷VçC¢3Ò“°¢–b†Ö÷'FvvT6÷VçBãÒbbÖ÷'FvvT6÷VçBÃÒ3c’—FV×2çW6‚‡²–C¢v†—÷FV6rÂFW67&—F–öã¢†—÷FV6Gµ7G&–ær†Ö÷'FvvT6÷VçB’çE7F'Bƒ2Âsr—ÒFR3cÂG—S¢vv7FòrÂ6FVv÷'“¢tf–¦÷2rÂ7V&6FVv÷'“¢t†—÷FV6rÂÖ÷VçC¢S3bã3Ò“°¢—FV×2çW6‚€¢²–C¢wföFföæRÖÆ÷v’rÂFW67&—F–öã¢föFföæR„Æ÷v’’ÒG·&Wf–÷W4æÖWÒG·&Wf–÷W5–V%6†÷'GÖÂG—S¢vv7FòrÂ6FVv÷'“¢tf–¦÷2rÂ7V&6FVv÷'“¢t6ö×Væ–66–öæW2rÂÖ÷VçC¢#‚ÒÀ¢²–C¢vÇW¢×F÷FÂÖVæW&w’rÂFW67&—F–öã¢ÇW¢F÷FÄVæW&w’G·&Wf–÷W4æÖWÒG·&Wf–÷W5–V%6†÷'GÖÂG—S¢vv7FòrÂ6FVv÷'“¢tf–¦÷2rÂ7V&6FVv÷'“¢tVÆV7G&–6–FBrÂÖ÷VçC¢çVÆÂÒÀ¢²–C¢vÇW¢Ö6ö6†RrÂFW67&—F–öã¢ÇW¢6ö6†RG·&Wf–÷W4æÖWÒG·&Wf–÷W5–V%6†÷'GÖÂG—S¢vv7FòrÂ6FVv÷'“¢tf–¦÷2rÂ7V&6FVv÷'“¢tVÆV7G&–6–FBrÂÖ÷VçC¢Ó3ÒÀ¢“°¢–b…³Â2ÂRÂrÂ’ÂÒæ–æ6ÇVFW2†ÖöçF‚’’°¢—FV×2çW6‚‡²–C¢w&VFW†—2ÖvÇrÂFW67&—F–öã¢&VFW†—2tÅÒG·&Wf–÷W4æÖWÒ’G´ÔôåD…5¶ÖöçF…×ÖÂG—S¢vv7FòrÂ6FVv÷'“¢tf–¦÷2rÂ7V&6FVv÷'“¢tv2rÂÖ÷VçC¢çVÆÂÒ“°¢Ğ¢–b†ÖöçF‚ãÒ"bbÖöçF‚ÃÒ’°¢6öç7B–ç7FÆÆÖVçBÒÖöçF‚Ò°¢—FV×2çW6‚‡²–C¢v–&’Ö&7W&rÂFW67&—F–öã¢”$’’&7W&G¶–ç7FÆÆÖVçGÒó–ÂG—S¢vv7FòrÂ6FVv÷'“¢tf–¦÷2rÂ7V&6FVv÷'“¢t”$’’&7W&rÂÖ÷VçC¢crãcÒ“°¢Ğ¢&WGW&â—FV×3°§Ğ¦gVæ7F–öâæ÷&ÖÆ—¦Tf—†VDFW67&—F–öâ‡fÇVRÒrr’°¢&WGW&â7G&–ær‡fÇVR’ææ÷&ÖÆ—¦R‚tädBr’ç&WÆ6R‚õµÇS3ÕÇS3feÒörÂrr’çFôÆ÷vW$66R‚’ç&WÆ6R‚õµæ×£Ó•ÒörÂrr“°§Ğ¦gVæ7F–öâW66T‡FÖÂ‡fÇVRÒrr’°¢&WGW&â7G&–ær‡fÇVR’ç&WÆ6R‚õ²cÃâ"uÒörÂ6†"Óâ‡°¢rbs¢rf×²rÂsÂs¢rfÇC²rÂsâs¢rfwC²rÂr"s¢rgV÷C²rÂ"r#¢rb33“²rÀ¢Ò•¶6†%Ò“°§Ğ¦gVæ7F–öâFö7B†ÖW76vRÂ—4W'&÷"ÒfÇ6R’°¢6öç7BVÆVÖVçBÒFö7VÖVçBæ7&VFTVÆVÖVçB‚vF—br“°¢VÆVÖVçBæ6Æ74æÖRÒwFö7Bs°¢–b†—4W'&÷"’VÆVÖVçBç7G–ÆRæ&6¶w&÷VæBÒr6CFCSBs°¢VÆVÖVçBçFW‡D6öçFVçBÒÖW76vS°¢Fö7VÖVçBæ&öG’æVæB†VÆVÖVçB“°¢6WEF–ÖV÷WB‚‚’ÓâVÆVÖVçBç&VÖ÷fR‚’Â#ƒ“°§Ğ¦gVæ7F–öâ6†÷tWF‚†ÖW76vRÒrrÂ—4W'&÷"ÒfÇ6R’°¢WF„vFRæ†–FFVâÒfÇ6S°¢6†VÆÂæ†–FFVâÒG'VS°¢WF„ÖW76vRçFW‡D6öçFVçBÒÖW76vS°¢WF„ÖW76vRæ6Æ74Æ—7BçFövvÆR‚vW'&÷"rÂ—4W'&÷"“°§Ğ¦gVæ7F–öâÆöDÆö6ÄFF‚’°¢G'’°¢6öç7B6fVBÒ¥4ôâç'6R†Æö6Å7F÷&vRævWD—FVÒ„Äô4Åõ5Dõ$tUô´U’’ÇÂvçVÆÂr“°¢–b‡6fVBbbG—Vöb6fVBÓÓÒvö&¦V7Brbb'&’æ—4'&’‡6fVBæÖ÷fVÖVçG2’’°¢F"Ò²ââæF"Âââç6fVBÓ°¢Ğ¢Ò6F6‚†W'&÷"’°¢6öç6öÆRçv&â‚tæò6RVF–W&öâÆVW"Æ÷2Ö÷f–Ö–VçF÷2wV&FF÷2VâW7FRæfVvF÷"ârÂW'&÷"“°¢Ğ§Ğ¦gVæ7F–öâ6fTÆö6ÄFF‚’°¢G'’°¢Æö6Å7F÷&vRç6WD—FVÒ„Äô4Åõ5Dõ$tUô´U’Â¥4ôâç7G&–æv–g’†F"’“°¢Ò6F6‚†W'&÷"’°¢Fö7B‚tæò6RVFòwV&F"VâW7FRæfVvF÷"ârÂG'VR“°¢6öç6öÆRæW'&÷"‚tW'&÷"ÂwV&F"VâÖöFòÆö6Ã¢rÂW'&÷"“°¢Ğ§Ğ¦gVæ7F–öâÖg&öÔFF&6R‡&÷r’°¢&WGW&â°¢–C¢&÷ræ–BÀ¢FFS¢&÷ræfV6†À¢W&–öE–V#¢çVÖ&W"‡&÷rçW&–öFõöæ–ò’À¢W&–öDÖöçFƒ¢çVÖ&W"‡&÷rçW&–öFõöÖW2’À¢FW67&—F–öã¢&÷ræFW67&—6–öâÀ¢G—S¢&÷rçF—òÀ¢6FVv÷'“¢&÷ræ6FVv÷&–À¢7V&6FVv÷'“¢&÷rç7V&6FVv÷&–ÇÂrrÀ¢W'6öã¢&÷rçW'6öæÀ¢Ö÷VçC¢çVÖ&W"‡&÷ræ–×÷'FR’À¢æ÷FW3¢&÷rææ÷F2ÇÂrrÀ¢f—†VEFV×ÆFT–C¢&÷rçÆçF–ÆÆöf–¦õö–BÇÂçVÆÂÀ¢7&VFVDC¢FFRç'6R‡&÷ræ7&VFVEöBÇÂ&÷ræfV6†’À¢Ó°§Ğ¦gVæ7F–öâf÷$7W'&VçEW&–öB†Ö÷fVÖVçB’°¢&WGW&âÖ÷fVÖVçBçW&–öE–V"ÓÓÒ6VÆV7FVE–V"bbÖ÷fVÖVçBçW&–öDÖöçF‚ÓÓÒ6VÆV7FVDÖöçF‚²°§Ğ¦gVæ7F–öâ7W'&VçDÖ÷fVÖVçG2‚’²&WGW&âF"æÖ÷fVÖVçG2æf–ÇFW"†f÷$7W'&VçEW&–öB“²Ğ¦gVæ7F–öâF÷FÇ2‚’°¢6öç7BÆ—7BÒ7W'&VçDÖ÷fVÖVçG2‚“°¢6öç7B–æ6öÖRÒÆ—7Bæf–ÇFW"†—FVÒÓâ—FVÒçG—RÓÓÒv–æw&W6òr’ç&VGV6R‚‡7VÒÂ—FVÒ’Óâ7VÒ²—FVÒæÖ÷VçBÂ“°¢6öç7BW‡Vç6W2ÒÆ—7Bæf–ÇFW"†—FVÒÓâ—FVÒçG—RÓÓÒvv7Fòr“°¢6öç7BW‡Vç6RÒW‡Vç6W2ç&VGV6R‚‡7VÒÂ—FVÒ’Óâ7VÒ²—FVÒæÖ÷VçBÂ“°¢6öç7BW&–öBÒÖöçF„¶W’‡6VÆV7FVE–V"Â6VÆV7FVDÖöçF‚²“°¢6öç7B&Ææ6RÒF"æ÷Væ–æt&Ææ6R²F"æÖ÷fVÖVçG0¢æf–ÇFW"†—FVÒÓâÖöçF„¶W’†—FVÒçW&–öE–V"Â—FVÒçW&–öDÖöçF‚’ÃÒW&–öB¢ç&VGV6R‚‡7VÒÂ—FVÒ’Óâ7VÒ²†—FVÒçG—RÓÓÒv–æw&W6òrò—FVÒæÖ÷VçB¢Ö—FVÒæÖ÷VçB’Â“°¢&WGW&â²Æ—7BÂ–æ6öÖRÂW‡Vç6RÂW‡Vç6W2Â&Ææ6RÓ°§Ğ¦gVæ7F–öâ&VæFW$†÷W6V†öÆD&Ææ6W2‚’°¢6öç7BF—FôFG2ÒF"æÖ÷fVÖVçG0¢æf–ÇFW"†—FVÒÓâ—FVÒçG—RÓÓÒv–æw&W6òrbb—FVÒçW'6öâÓÓÒuF—Fòr¢ç&VGV6R‚‡7VÒÂ—FVÒ’Óâ7VÒ²—FVÒæÖ÷VçBÂ“°¢6öç7B6†V–ÆFG2ÒF"æÖ÷fVÖVçG0¢æf–ÇFW"†—FVÒÓâ—FVÒçG—RÓÓÒv–æw&W6òrbb—FVÒçW'6öâÓÓÒu6†V–Ær¢ç&VGV6R‚‡7VÒÂ—FVÒ’Óâ7VÒ²—FVÒæÖ÷VçBÂ“°¢6öç7BF—FõF÷FÂÒF"æ–æ—F–ÅF—Fò²F—FôFG3°¢6öç7B6†V–ÆF÷FÂÒF"æ–æ—F–Å6†V–Æ²6†V–ÆFG3°¢6öç7BF–ffW&Væ6RÒF—FõF÷FÂÒ6†V–ÆF÷FÃ°¢6öç7B‡V6†Ö÷fVÖVçBÒF"æÖ÷fVÖVçG0¢æf–ÇFW"†—FVÒÓâ—FVÒçG—RÓÓÒvv7Fòrbb—FVÒæ6FVv÷'’ÓÓÒtf–¦÷2rbb—FVÒç7V&6FVv÷'’ÓÓÒt†÷'&÷2‡V6†r¢ç&VGV6R‚‡7VÒÂ—FVÒ’Óâ7VÒ²—FVÒæÖ÷VçBÂ“°¢6öç7B6öæ6†•–BÒF"æÖ÷fVÖVçG0¢æf–ÇFW"†—FVÒÓâ—FVÒçG—RÓÓÒvv7Fòrbb—FVÒæ6FVv÷'’ÓÓÒtf–¦÷2rbb—FVÒç7V&6FVv÷'’ÓÓÒu,:—7FÖò6öæ6†’r¢ç&VGV6R‚‡7VÒÂ—FVÒ’Óâ7VÒ²—FVÒæÖ÷VçBÂ“°¢Fö7VÖVçBævWDVÆVÖVçD'”–B‚vÆ–fWF–ÖUF—Fòr’çFW‡D6öçFVçBÒWW&ò‡F—FõF÷FÂ“°¢Fö7VÖVçBævWDVÆVÖVçD'”–B‚vÆ–fWF–ÖUF—FôFWF–Âr’çFW‡D6öçFVçBÒ–æ–6–ó¢G¶WW&ò†F"æ–æ—F–ÅF—Fò—Ò+rFW6FR##c¢G¶WW&ò‡F—FôFG2—Ö°¢Fö7VÖVçBævWDVÆVÖVçD'”–B‚vÆ–fWF–ÖU6†V–Ær’çFW‡D6öçFVçBÒWW&ò‡6†V–ÆF÷FÂ“°¢Fö7VÖVçBævWDVÆVÖVçD'”–B‚vÆ–fWF–ÖU6†V–ÆFWF–Âr’çFW‡D6öçFVçBÒ–æ–6–ó¢G¶WW&ò†F"æ–æ—F–Å6†V–Æ—Ò+rFW6FR##c¢G¶WW&ò‡6†V–ÆFG2—Ö°¢Fö7VÖVçBævWDVÆVÖVçD'”–B‚vF–ffW&Væ6UF—Fòr’çFW‡D6öçFVçBÒG¶F–ffW&Væ6RãÒòr²r¢~(‰"wÒG¶WW&ò„ÖF‚æ'2†F–ffW&Væ6R’—Ö°¢Fö7VÖVçBævWDVÆVÖVçD'”–B‚vF–ffW&Væ6U6†V–Ær’çFW‡D6öçFVçBÒG¶F–ffW&Væ6RÃÒòr²r¢~(‰"wÒG¶WW&ò„ÖF‚æ'2†F–ffW&Væ6R’—Ö°¢Fö7VÖVçBævWDVÆVÖVçD'”–B‚vF–ffW&Væ6T6F–öâr’çFW‡D6öçFVçBÒF–ffW&Væ6RÓÓÒ ¢òtÆ÷2F÷2†,:–—2÷'FFòÆòÖ—6Öòp¢¢F–ffW&Væ6RâòuF—Fò†÷'FFòÜ:2r¢u6†V–Æ†÷'FFòÜ:2s°¢Fö7VÖVçBævWDVÆVÖVçD'”–B‚v‡V6†&Ææ6Rr’çFW‡D6öçFVçBÒWW&ò†F"æ–æ—F–Å6f–æw2²‡V6†Ö÷fVÖVçB“°¢Fö7VÖVçBævWDVÆVÖVçD'”–B‚v‡V6†FWF–Âr’çFW‡D6öçFVçBÒ–æ–6–Ã¢G¶WW&ò†F"æ–æ—F–Å6f–æw2—Ò+rÖ÷f–Ö–VçF÷3¢G¶WW&ò†‡V6†Ö÷fVÖVçB—Ö°¢Fö7VÖVçBævWDVÆVÖVçD'”–B‚v6öæ6†”&Ææ6Rr’çFW‡D6öçFVçBÒWW&ò†F"æ–æ—F–Ä6öæ6†”FV'BÒ6öæ6†•–B“°¢Fö7VÖVçBævWDVÆVÖVçD'”–B‚v6öæ6†”FWF–Âr’çFW‡D6öçFVçBÒFWVF–æ–6–Ã¢G¶WW&ò†F"æ–æ—F–Ä6öæ6†”FV'B—Ò+rv÷3¢G¶WW&ò†6öæ6†•–B—Ö°§Ğ ¦7–æ2gVæ7F–öâ7F—fFU6W76–öâ‡6W76–öâ’°¢–b‚6W76–öâÇÂ7W&6T6Æ–VçB’&WGW&ã°¢–b†ÆöFVEW6W$–BÓÓÒ6W76–öâçW6W"æ–Bbb6†VÆÂæ†–FFVâ’&WGW&ã°¢6öç7B6WVVæ6RÒ²·6W76–öäÆöE6WVVæ6S°¢G'’°¢6öç7B²FF¢ÖVÖ&W"ÂW'&÷#¢ÖVÖ&W$W'&÷"ÒÒv—B7W&6T6Æ–Vç@¢æg&öÒ‚v66öÖ–VÖ'&÷2r¢ç6VÆV7B‚v–BÆ†öv%ö–BÆWF…÷W6W%ö–BÆVÖ–ÂÆæöÖ'&RÇ&öÂÆ7F—fòr¢æW‚vWF…÷W6W%ö–BrÂ6W76–öâçW6W"æ–B¢æW‚v7F—fòrÂG'VR¢æÖ–&U6–ævÆR‚“°¢–b†ÖVÖ&W$W'&÷"’F‡&÷rÖVÖ&W$W'&÷#°¢–b‚ÖVÖ&W"’°¢ÆöFVEW6W$–BÒçVÆÃ°¢v—B7W&6T6Æ–VçBæWF‚ç6–vä÷WB‚“°¢6†÷tWF‚‚tW6R6÷'&VòFöFl:ÖæòF–VæR66W6òW7FR†öv"â&Wf—6ÆF—&V66œ;6âò–FRVRFR†&–Æ—FVâârÂG'VR“°¢&WGW&ã°¢Ğ¢6öç7B·²FF¢†÷W6V†öÆBÂW'&÷#¢†÷W6V†öÆDW'&÷"ÒÂ²FF¢&÷w2ÂW'&÷#¢Ö÷fVÖVçG4W'&÷"ÕÒÒv—B&öÖ—6RæÆÂ…°¢7W&6T6Æ–VçBæg&öÒ‚v66ö†öv&W2r¢ç6VÆV7B‚v–BÆæöÖ'&RÇ6ÆFõö–æ–6–ÂÆ‡V6†ö–æ–6–ÂÆFWVFö6öæ6†•ö–æ–6–ÂÆ÷'F6–öåö–æ–6–Å÷F—FòÆ÷'F6–öåö–æ–6–Å÷6†V–Ær¢æW‚v–BrÂÖVÖ&W"æ†öv%ö–B’ç6–ævÆR‚’À¢7W&6T6Æ–VçBæg&öÒ‚v66öÖ÷f–Ö–VçF÷2r¢ç6VÆV7B‚r¢r’æW‚v†öv%ö–BrÂÖVÖ&W"æ†öv%ö–B’æW‚v&6†—fFòrÂfÇ6R¢æ÷&FW"‚wW&–öFõöæ–òr’æ÷&FW"‚wW&–öFõöÖW2r’æ÷&FW"‚vfV6†r’À¢Ò“°¢–b††÷W6V†öÆDW'&÷"’F‡&÷r†÷W6V†öÆDW'&÷#°¢–b†Ö÷fVÖVçG4W'&÷"’F‡&÷rÖ÷fVÖVçG4W'&÷#°¢–b‡6WVVæ6RÓÒ6W76–öäÆöE6WVVæ6R’&WGW&ã°¢7W'&VçEW6W"Ò6W76–öâçW6W#°¢7W'&VçDÖVÖ&W"ÒÖVÖ&W#°¢ÆöFVEW6W$–BÒ6W76–öâçW6W"æ–C°¢F"Ò°¢÷Væ–æt&Ææ6S¢çVÖ&W"††÷W6V†öÆBç6ÆFõö–æ–6–ÂÇÂ’À¢–æ—F–Å6f–æw3¢çVÖ&W"††÷W6V†öÆBæ‡V6†ö–æ–6–ÂÇÂ’À¢–æ—F–Ä6öæ6†”FV'C¢çVÖ&W"††÷W6V†öÆBæFWVFö6öæ6†•ö–æ–6–ÂÇÂ’À¢–æ—F–ÅF—Fó¢çVÖ&W"††÷W6V†öÆBæ÷'F6–öåö–æ–6–Å÷F—FòÇÂ’À¢–æ—F–Å6†V–Æ¢çVÖ&W"††÷W6V†öÆBæ÷'F6–öåö–æ–6–Å÷6†V–ÆÇÂ’À¢Ö÷fVÖVçG3¢‡&÷w2ÇÂµÒ’æÖ†Ög&öÔFF&6R’À¢Ó°¢Fö7VÖVçBçVW'•6VÆV7F÷"‚rç&öf–ÆRÖ'WGFöâ7G&öærr’çFW‡D6öçFVçBÒÖVÖ&W"ææöÖ'&S°¢Fö7VÖVçBçVW'•6VÆV7F÷"‚rç&öf–ÆRÖ'WGFöâ6ÖÆÂr’çFW‡D6öçFVçBÒÖVÖ&W"ç&öÂÓÓÒvFÖ–âròtFÖ–æ—7G&F÷"r¢u6öÆòÆV7GW&s°¢Fö7VÖVçBçVW'•6VÆV7F÷"‚rç&öf–ÆRÖ'WGFöâæfF"r’çFW‡D6öçFVçBÒ†ÖVÖ&W"ææöÖ'&RÇÂsòr’ç6Æ–6RƒÂ’çFõWW$66R‚“°¢6WEw&—FT66W72†ÖVÖ&W"ç&öÂÓÓÒvFÖ–âr“°¢WF„vFRæ†–FFVâÒG'VS°¢6†VÆÂæ†–FFVâÒfÇ6S°¢&VæFW"‚“°¢Ò6F6‚†W'&÷"’°¢6†÷tWF‚‚tæò6RVFò6&v"VÂ†öv"â6ö×'VV&Æ6öæW†œ;6âR–çL:–çFÆòFRçVWfòârÂG'VR“°¢6öç6öÆRæW'&÷"‚tæò6RVFò6&v"7W&6S¢rÂW'&÷"“°¢Ğ§Ğ¦gVæ7F–öâ6WEw&—FT66W72†6åw&—FR’°¢²vFDÖ÷fVÖVçBrÂvFD6öçG&–'WF–öârÂvFD6öçG&–'WF–öåf–WrrÂvV×G”FBuÒæf÷$V6‚†–BÓâ°¢6öç7B'WGFöâÒFö7VÖVçBævWDVÆVÖVçD'”–B†–B“°¢–b†'WGFöâ’'WGFöâæ†–FFVâÒ6åw&—FS°¢Ò“°§Ğ¦7–æ2gVæ7F–öâ&Vg&W6„Ö÷fVÖVçG2‚’°¢6öç7B²FFÂW'&÷"ÒÒv—B7W&6T6Æ–VçBæg&öÒ‚v66öÖ÷f–Ö–VçF÷2r¢ç6VÆV7B‚r¢r’æW‚v†öv%ö–BrÂ7W'&VçDÖVÖ&W"æ†öv%ö–B’æW‚v&6†—fFòrÂfÇ6R¢æ÷&FW"‚wW&–öFõöæ–òr’æ÷&FW"‚wW&–öFõöÖW2r’æ÷&FW"‚vfV6†r“°¢–b†W'&÷"’F‡&÷rW'&÷#°¢F"æÖ÷fVÖVçG2Ò†FFÇÂµÒ’æÖ†Ög&öÔFF&6R“°¢&VæFW"‚“°§Ğ ¦gVæ7F–öâ&VæFW"‚’°¢–b‚7W'&VçDÖVÖ&W"’&WGW&ã°¢6öç7B&W7VÇBÒF÷FÇ2‚“°¢Fö7VÖVçBævWDVÆVÖVçD'”–B‚vÖöçF„Æ&VÂr’çFW‡D6öçFVçBÒG¶ÖöçF„æÖR‚—ÒG·6VÆV7FVE–V'Ö°¢Fö7VÖVçBævWDVÆVÖVçD'”–B‚wW&–öEFW‡Br’çFW‡D6öçFVçBÒG¶ÖöçF„æÖR‚’çFôÆö6ÆTÆ÷vW$66R‚vW2ÔU2r—ÒFRG·6VÆV7FVE–V'Ö°¢Fö7VÖVçBævWDVÆVÖVçD'”–B‚v&Ææ6UfÇVRr’çFW‡D6öçFVçBÒWW&ò‡&W7VÇBæ&Ææ6R“°¢Fö7VÖVçBævWDVÆVÖVçD'”–B‚v–æ6öÖUfÇVRr’çFW‡D6öçFVçBÒWW&ò‡&W7VÇBæ–æ6öÖR“°¢Fö7VÖVçBævWDVÆVÖVçD'”–B‚vW‡Vç6UfÇVRr’çFW‡D6öçFVçBÒWW&ò‡&W7VÇBæW‡Vç6R“°¢Fö7VÖVçBævWDVÆVÖVçD'”–B‚væWEfÇVRr’çFW‡D6öçFVçBÒWW&ò‡&W7VÇBæ–æ6öÖRÒ&W7VÇBæW‡Vç6R“°¢Fö7VÖVçBævWDVÆVÖVçD'”–B‚v&Ææ6T6F–öâr’çFW‡D6öçFVçBÒ6ÆFò–æ–6–Ã¢G¶WW&ò†F"æ÷Væ–æt&Ææ6R—Ö°¢Fö7VÖVçBævWDVÆVÖVçD'”–B‚vW‡Vç6T6÷VçBr’çFW‡D6öçFVçBÒG·&W7VÇBæW‡Vç6W2æÆVæwF‡ÒG·&W7VÇBæW‡Vç6W2æÆVæwF‚ÓÓÒòvÖ÷f–Ö–VçFòr¢vÖ÷f–Ö–VçF÷2wÖ°¢&VæFW$†÷W6V†öÆD&Ææ6W2‚“°¢6öç7B'•W'6öâÒ²F—Fó¢Â6†V–Æ¢Âf&–÷3¢Ó°¢&W7VÇBæÆ—7Bæf–ÇFW"†—FVÒÓâ—FVÒçG—RÓÓÒv–æw&W6òr’æf÷$V6‚†—FVÒÓâ°¢'•W'6öå¶—FVÒçW'6öåÒÒ†'•W'6öå¶—FVÒçW'6öåÒÇÂ’²—FVÒæÖ÷VçC°¢Ò“°¢Fö7VÖVçBævWDVÆVÖVçD'”–B‚v6öçG&–'WF–öåF÷FÂr’çFW‡D6öçFVçBÒWW&ò‡&W7VÇBæ–æ6öÖR“°¢Fö7VÖVçBævWDVÆVÖVçD'”–B‚wV÷ÆTÆ—7Br’æ–ææW$…DÔÂÒ²uF—FòrÂu6†V–ÆuÒæÖ†æÖRÓâ ¢ÆF—b6Æ73Ò'W'6öâ×&÷r#ãÇ7â6Æ73Ò'W'6öâÖfF"G¶æÖRçFôÆ÷vW$66R‚—Ò#âG¶æÖU³×ÓÂ÷7ãà¢Ç7â6Æ73Ò'W'6öâÖæÖR#ãÇ7G&öæsâG¶æÖWÓÂ÷7G&öæsãÇ6ÖÆÃä÷'F6œ;6âFVÂÖW3Â÷6ÖÆÃãÂ÷7ãà¢Ç7â6Æ73Ò'W'6öâÖÖ÷VçB#âG¶WW&ò†'•W'6öå¶æÖUÒÇÂ—ÓÂ÷7ãà¢Ç7â6Æ73Ò'W'6öâ×G&6²#ãÆ’7G–ÆSÒ'v–GFƒ¢G·&W7VÇBæ–æ6öÖRòÖF‚æÖ–âƒÂÖF‚æÖ‚ƒÂ†'•W'6öå¶æÖUÒÇÂ’ò&W7VÇBæ–æ6öÖR¢’’¢ÒR#ãÂö“ãÂ÷7ããÂöF—cæ’æ¦ö–â‚rr“°¢&VæFW$Ö–æ”&'2‚“°¢&VæFW%G&ç67F–öç2‡&W7VÇBæÆ—7B“°¢&VæFW$6FVv÷&–W2‡&W7VÇBæW‡Vç6W2“°¢&VæFW%6V6öæF'•f–Ww2‡&W7VÇB“°§Ğ¦gVæ7F–öâ&VæFW$Ö–æ”&'2‚’°¢6öç7B–æ6öÖT&'2ÒFö7VÖVçBævWDVÆVÖVçD'”–B‚v–æ6öÖT&'2r“°¢6öç7BW‡Vç6T&'2ÒFö7VÖVçBævWDVÆVÖVçD'”–B‚vW‡Vç6T&'2r“°¢–æ6öÖT&'2æ–ææW$…DÔÂÒrs°¢W‡Vç6T&'2æ–ææW$…DÔÂÒrs°¢6öç7B'”ÖöçF‚Ò'&’æg&öÒ‡²ÆVæwFƒ¢"ÒÂ…òÂÖöçF‚’ÓâF"æÖ÷fVÖVçG2æf–ÇFW"†—FVÒÓâ—FVÒçW&–öE–V"ÓÓİûó{h‘éì¶»§q«^tH[[İš[ZY[Ë‰ËYJNÈ™]\›ÈBˆYˆ
+Y\ØÜš\[ÛŠHÈØ\İ
+	Ñ\ØÜšX™H[˜H\ØÜš\ÚpìÛ‹‰ËYJNÈ™]\›ÈBˆYˆ
+˜]Ğ[[İ[OOH	ÉÈS[X™\‹š\Ñš[š]J[[İ[
+H[[İ[OOH
+[\]K\HOOH	Ú[™Ü™\ÛÉÈ	‰ˆ[[İ[
+JHÂˆØ\İ
+	Ò[™XØH[ˆ[\ÜH°è[YË‰ËYJNÈ™]\›ÂˆBˆÛÛœİ[İ™[Y[HÂˆÙØ\—ÚYˆİ\œ™[Y[X™\‹šÙØ\—ÚYˆ™XÚNˆ]Kˆ\š[Ù×Ø[š[ÎˆÙ[XİYYX\‹ˆ\š[Ù×ÛY\ÎˆÙ[XİY[Û
+ÈKˆ\ØÜš\Ú[Ûˆ\ØÜš\[Û‹ˆ\Îˆ[\]K\KˆØ]YÛÜšXNˆ[\]K˜Ø]YÛÜKˆİX˜Ø]YÛÜšXNˆ[\]KœİX˜Ø]YÛÜKˆ\œÛÛ˜Nˆ[\]Kœ\œÛÛˆ[ˆ[\ÜNˆ[[İ[ˆ›İ\Îˆ	ÉËˆÜ™XY×ÜÜˆİ\œ™[\Ù\ËšY[ˆ[[WÙšZ›×ÚYˆ[\]KšYˆNÂˆHÂˆYˆ
+T×ÓĞĞSÑ’SJHÂˆ‹›[İ™[Y[Ëœ\Ú
+ÈYˆÜ\Ëœ˜[™ÛUURQ
 
-let selectedYear = now.getFullYear();
-let selectedMonth = now.getMonth();
-let activeView = 'inicio';
-let movementFilter = 'todos';
-let movementCategories = null;
-let editingId = null;
-let currentUser = null;
-let currentMember = null;
-let loadedUserId = null;
-let sessionLoadSequence = 0;
-let db = { openingBalance: 0, initialSavings: 0, initialConchiDebt: 0, initialTito: 0, initialSheila: 0, movements: [] };
+K]K\š[ÙYX\ˆÙ[XİYYX\‹\š[Ù[ÛˆÙ[XİY[Û
+ÈKˆ\ØÜš\[Û‹\Nˆ[\]K\KØ]YÛÜNˆ[\]K˜Ø]YÛÜKİX˜Ø]YÛÜNˆ[\]KœİX˜Ø]YÛÜKˆ\œÛÛˆ[\]Kœ\œÛÛˆ[[[İ[›İ\Îˆ	ÉËš^Y[\]RYˆ[\]KšYÜ™X]Y]ˆ]K››İÊ
+HJNÂˆØ]™SØØ[]J
+NÂˆH[ÙHÂˆÛÛœİÈ\œ›ÜˆHH]ØZ]İ\X˜\ÙPÛY[™œ›ÛJ	ØØ\ØWÛ[İš[ZY[ÜÉÊKš[œÙ\
+[İ™[Y[
+NÂˆYˆ
+\œ›ÜŠH›İÈ\œ›ÜÂˆ]ØZ]™Yœ™\Ú[İ™[Y[Ê
+NÂˆBˆ™[™\Š
+NÂˆØ\İ
+	Ó[İš[ZY[ÈšZ›ÈpìXYYÉÊNÂˆHØ]Ú
+\œ›ÜŠHÂˆYˆ
+\œ›Ü‹˜ÛÙHOOH	ÌŒÍLIÊHÂˆ]ØZ]™Yœ™\Ú[İ™[Y[Ê
+NÂˆØ\İ
+	Ñ\İHšZ›ÈXH\İX˜HpìXYYÈ\˜H[Y\Ë‰ËYJNÂˆH[ÙHÂˆÛÛœÛÛK™\œ›ÜŠ	Ó›ÈÙHYÈ\XØ\ˆ[šZ›Î‰Ë\œ›ÜŠNÂˆØ\İ
+	Ó›ÈÙHYÈpìXY\ˆ[[İš[ZY[ÈšZ›Ë‰ËYJNÂˆBˆBŸB‚˜ÛÛœİ’QU×ÓQUHHÂˆ[šXÚ[ÎˆÈ]Nˆ	Ô™\İ[Y[‰ËİX]Nˆ	ÕÙÈÈ]YH[˜HHØ[HHY\İ˜HİY[HÛÛpî›‹‰ÈKˆ[İš[ZY[ÜÎˆÈ]Nˆ	Ó[İš[ZY[ÜÉËİX]Nˆ	ĞÛÛœİ[HH\ØØHÜÈ[™Ü™\ÛÜÈHØ\İÜÈ[Y\Ë‰ÈKˆ\ÜXÚ[Û™\ÎˆÈ]Nˆ	Ğ\ÜXÚ[Û™\ÉËİX]Nˆ	ÓÈ]YH]ÈHÚZ[H[™Ü™\Ø[ˆ[ˆHİY[HÛÛpî›‹‰ÈKˆšZ›ÜÎˆÈ]Nˆ	ÑšZ›ÜÈY[œİX[\ÉËİX]Nˆ	Ó[İš[ZY[ÜÈ™]š\İÜÈ\˜HØYHY\Ë‰ÈKˆØ]YÛÜšX\ÎˆÈ]Nˆ	ĞØ]YÛÜ°ëX\ÉËİX]Nˆ	Ñ\ØİXœ™H[ˆ]pêHÙH\İšX^Y[ˆÜÈØ\İÜÈ[Y\Ë‰ÈKŸNÂ™[˜İ[ÛˆÙ]šY]ÊšY]ÊHÂˆYˆ
+U’QU×ÓQUVİšY]×JH™]\›ÂˆXİ]™UšY]ÈHšY]ÎÂˆØİ[Y[™Ù][[Y[RY
+	ÜYÙU]IÊK^ÛÛ[H’QU×ÓQUVİšY]×K]NÂˆØİ[Y[™Ù][[Y[RY
+	ÜYÙTİX]IÊK^ÛÛ[H’QU×ÓQUVİšY]×KœİX]NÂˆØİ[Y[™Ù][[Y[RY
+	Øœ™XYÜ[X‰ÊK^ÛÛ[H’QU×ÓQUVİšY]×K]NÂˆØİ[Y[™Ù][[Y[RY
+	Ù\Ú›Ø\™šY]ÉÊKšY[ˆHšY]ÈOOH	Ú[šXÚ[ÉÎÂˆØİ[Y[™Ù][[Y[RY
+	ÜÙXÛÛ™\UšY]ÉÊKšY[ˆHšY]ÈOOH	Ú[šXÚ[ÉÎÂˆØİ[Y[œ]Y\TÙ[XİÜ[
+	ËœÙXÛÛ™\K\YÙIÊK™›Ü‘XXÚ
+ÙXİ[ÛˆOˆÙXİ[Û‹šY[ˆHÙXİ[Û‹šYOOH	İšY]ßUšY]Ø
+NÂˆØİ[Y[œ]Y\TÙ[XİÜ[
+	Ë›˜]‹[[šÉÊK™›Ü‘XXÚ
+[šÈOˆÂˆÛÛœİXİ]™HH[šË™]\Ù]šY]ÈOOHšY]ÎÂˆ[šË˜Û\ÜÓ\İÙÙÛJ	ØXİ]™IËXİ]™JNÂˆYˆ
+Xİ]™JH[šËœÙ]]šX]J	Ø\šXKXİ\œ™[	Ë	ÜYÙIÊNÂˆ[ÙH[šËœ™[[İ™P]šX]J	Ø\šXKXİ\œ™[	ÊNÂˆJNÂˆÚ[™İËœØÜ›ÛÊÈÜˆ™Z]š[Üˆ	ÜÛ[Ûİ	ÈJNÂŸB‚˜\Ş[˜È[˜İ[ÛˆÜ[“[İ™[Y[
+\HH	ÙØ\İÉË][HH[
+HÂˆYˆ
+İ\œ™[Y[X™\Ëœ›ÛOOH	ØYZ[‰ÊH™]\›ÂˆY][™ÒYH][OËšY[Âˆ›Ü›Kœ™\Ù]
 
-const authGate = document.getElementById('authGate');
-const appShell = document.getElementById('appShell');
-const authMessage = document.getElementById('authMessage');
-const dialog = document.getElementById('movementDialog');
-const form = document.getElementById('movementForm');
+NÂˆÛÛœİ\š[ÙHØİ[Y[™Ù][[Y[RY
+	Ü\š[Ù[Û	ÊNÂˆÛÛœİ\š[ÙYX\ˆH][OËœ\š[ÙYX\ˆÏÈÙ[XİYYX\ÂˆÛÛœİ\š[Ù[ÛH][OËœ\š[Ù[ÛÏÈÙ[XİY[Û
+ÈNÂˆ\š[Ù˜[YHH	Ü\š[ÙYX\ŸKIÔİš[™Ê\š[Ù[Û
+KœYİ\
+‹	Ì	Ê_XÂˆØİ[Y[™Ù][[Y[RY
+	Ù]IÊK˜[YHH][OË™]H]Q›Ü’[œ]
 
-function euro(value) {
-  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(value || 0);
-}
-function monthName(month = selectedMonth) { return MONTHS[month]; }
-function monthKey(year, month) { return year * 12 + month; }
-function dateForInput() {
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-function fixedMonthlyTemplates(year = selectedYear, month = selectedMonth) {
-  const previous = new Date(year, month - 1, 1);
-  const previousName = MONTHS[previous.getMonth()];
-  const previousYearShort = String(previous.getFullYear()).slice(-2);
-  const monthOffset = (year - 2026) * 12 + (month - 10);
-  const huchaCount = 30 + monthOffset;
-  const conchiCount = 68 + monthOffset;
-  const mortgageCount = 68 + monthOffset;
-  const items = [
-    { id: 'aportacion-tito', description: 'AportaciÃ³n mensual 1', type: 'ingreso', category: 'Ingresos', subcategory: 'Tito', person: 'Tito', amount: 800 },
-    { id: 'aportacion-sheila', description: 'AportaciÃ³n mensual 1 (750+50 ahorro)', type: 'ingreso', category: 'Ingresos', subcategory: 'Sheila', person: 'Sheila', amount: 800 },
-    { id: 'comunidad', description: 'Comunidad', type: 'gasto', category: 'Fijos', subcategory: 'Comunidad', amount: 97.60 },
-    { id: 'ahorros-hucha', description: `Ahorros Hucha ${huchaCount}`, type: 'gasto', category: 'Fijos', subcategory: 'Ahorros Hucha', amount: 50 },
-  ];
-  if (conchiCount >= 1 && conchiCount <= 134) items.push({ id: 'prestamo-conchi', description: `PrÃ©stamo Conchi ${String(conchiCount).padStart(3, '0')} de 134`, type: 'gasto', category: 'Fijos', subcategory: 'PrÃ©stamo Conchi', amount: 300 });
-  if (mortgageCount >= 1 && mortgageCount <= 360) items.push({ id: 'hipoteca', description: `Hipoteca ${String(mortgageCount).padStart(3, '0')} de 360`, type: 'gasto', category: 'Fijos', subcategory: 'Hipoteca', amount: 536.31 });
-  items.push(
-    { id: 'vodafone-lowi', description: `Vodafone (Lowi) - ${previousName} ${previousYearShort}`, type: 'gasto', category: 'Fijos', subcategory: 'Comunicaciones', amount: 28 },
-    { id: 'luz-total-energy', description: `Luz TotalEnergy ${previousName} ${previousYearShort}`, type: 'gasto', category: 'Fijos', subcategory: 'Electricidad', amount: null },
-    { id: 'luz-coche', description: `Luz coche ${previousName} ${previousYearShort}`, type: 'gasto', category: 'Fijos', subcategory: 'Electricidad', amount: -30 },
-  );
-  if ([1, 3, 5, 7, 9, 11].includes(month)) {
-    items.push({ id: 'redexis-glp', description: `Redexis GLP - ${previousName} y ${MONTHS[month]}`, type: 'gasto', category: 'Fijos', subcategory: 'Gas', amount: null });
-  }
-  if (month >= 2 && month <= 10) {
-    const installment = month - 1;
-    items.push({ id: 'ibi-basura', description: `IBI y basura ${installment}/9`, type: 'gasto', category: 'Fijos', subcategory: 'IBI y basura', amount: 67.61 });
-  }
-  return items;
-}
-function normalizeFixedDescription(value = '') {
-  return String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
-}
-function escapeHtml(value = '') {
-  return String(value).replace(/[&<>"']/g, char => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-  })[char]);
-}
-function toast(message, isError = false) {
-  const element = document.createElement('div');
-  element.className = 'toast';
-  if (isError) element.style.background = '#a44d54';
-  element.textContent = message;
-  document.body.append(element);
-  setTimeout(() => element.remove(), 2800);
-}
-function showAuth(message = '', isError = false) {
-  authGate.hidden = false;
-  appShell.hidden = true;
-  authMessage.textContent = message;
-  authMessage.classList.toggle('error', isError);
-}
-function loadLocalData() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || 'null');
-    if (saved && typeof saved === 'object' && Array.isArray(saved.movements)) {
-      db = { ...db, ...saved };
-    }
-  } catch (error) {
-    console.warn('No se pudieron leer los movimientos guardados en este navegador.', error);
-  }
-}
-function saveLocalData() {
-  try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(db));
-  } catch (error) {
-    toast('No se pudo guardar en este navegador.', true);
-    console.error('Error al guardar en modo local:', error);
-  }
-}
-function mapFromDatabase(row) {
-  return {
-    id: row.id,
-    date: row.fecha,
-    periodYear: Number(row.periodo_anio),
-    periodMonth: Number(row.periodo_mes),
-    description: row.descripcion,
-    type: row.tipo,
-    category: row.categoria,
-    subcategory: row.subcategoria || '',
-    person: row.persona,
-    amount: Number(row.importe),
-    notes: row.notas || '',
-    fixedTemplateId: row.plantilla_fijo_id || null,
-    createdAt: Date.parse(row.created_at || row.fecha),
-  };
-}
-function forCurrentPeriod(movement) {
-  return movement.periodYear === selectedYear && movement.periodMonth === selectedMonth + 1;
-}
-function currentMovements() { return db.movements.filter(forCurrentPeriod); }
-function totals() {
-  const list = currentMovements();
-  const income = list.filter(item => item.type === 'ingreso').reduce((sum, item) => sum + item.amount, 0);
-  const expenses = list.filter(item => item.type === 'gasto');
-  const expense = expenses.reduce((sum, item) => sum + item.amount, 0);
-  const period = monthKey(selectedYear, selectedMonth + 1);
-  const balance = db.openingBalance + db.movements
-    .filter(item => monthKey(item.periodYear, item.periodMonth) <= period)
-    .reduce((sum, item) => sum + (item.type === 'ingreso' ? item.amount : -item.amount), 0);
-  return { list, income, expense, expenses, balance };
-}
-function renderHouseholdBalances() {
-  const titoAdds = db.movements
-    .filter(item => item.type === 'ingreso' && item.person === 'Tito')
-    .reduce((sum, item) => sum + item.amount, 0);
-  const sheilaAdds = db.movements
-    .filter(item => item.type === 'ingreso' && item.person === 'Sheila')
-    .reduce((sum, item) => sum + item.amount, 0);
-  const titoTotal = db.initialTito + titoAdds;
-  const sheilaTotal = db.initialSheila + sheilaAdds;
-  const difference = titoTotal - sheilaTotal;
-  const huchaMovement = db.movements
-    .filter(item => item.type === 'gasto' && item.category === 'Fijos' && item.subcategory === 'Ahorros Hucha')
-    .reduce((sum, item) => sum + item.amount, 0);
-  const conchiPaid = db.movements
-    .filter(item => item.type === 'gasto' && item.category === 'Fijos' && item.subcategory === 'PrÃ©stamo Conchi')
-    .reduce((sum, item) => sum + item.amount, 0);
-  document.getElementById('lifetimeTito').textContent = euro(titoTotal);
-  document.getElementById('lifetimeTitoDetail').textContent = `Inicio: ${euro(db.initialTito)} Â· desde 2026: ${euro(titoAdds)}`;
-  document.getElementById('lifetimeSheila').textContent = euro(sheilaTotal);
-  document.getElementById('lifetimeSheilaDetail').textContent = `Inicio: ${euro(db.initialSheila)} Â· desde 2026: ${euro(sheilaAdds)}`;
-  document.getElementById('differenceTito').textContent = `${difference >= 0 ? '+' : 'âˆ’'}${euro(Math.abs(difference))}`;
-  document.getElementById('differenceSheila').textContent = `${difference <= 0 ? '+' : 'âˆ’'}${euro(Math.abs(difference))}`;
-  document.getElementById('differenceCaption').textContent = difference === 0
-    ? 'Los dos habÃ©is aportado lo mismo'
-    : difference > 0 ? 'Tito ha aportado mÃ¡s' : 'Sheila ha aportado mÃ¡s';
-  document.getElementById('huchaBalance').textContent = euro(db.initialSavings + huchaMovement);
-  document.getElementById('huchaDetail').textContent = `Inicial: ${euro(db.initialSavings)} Â· movimientos: ${euro(huchaMovement)}`;
-  document.getElementById('conchiBalance').textContent = euro(db.initialConchiDebt - conchiPaid);
-  document.getElementById('conchiDetail').textContent = `Deuda inicial: ${euro(db.initialConchiDebt)} Â· pagos: ${euro(conchiPaid)}`;
-}
+NÂˆÛÛœİØ]YÛÜHHØİ[Y[™Ù][[Y[RY
+	ØØ]YÛÜIÊNÂˆØ]YÛÜKš[›™\’SHØš™XİšÙ^\ÊĞUQÓÔ’QTÊK›X\
+˜[YHOˆÜ[Û‰Ù\ØØ\R[
+˜[YJ_OÛÜ[Û˜
+Kš›Ú[Š	ÉÊNÂˆØİ[Y[™Ù][[Y[RY
+	Ù\ØÜš\[Û‰ÊK˜[YHH][OË™\ØÜš\[Ûˆ	ÉÎÂˆØİ[Y[™Ù][[Y[RY
+	Ø[[İ[	ÊK˜[YHH][OË˜[[İ[ÏÈ	ÉÎÂˆØİ[Y[™Ù][[Y[RY
+	Û›İ\ÉÊK˜[YHH][OË››İ\È	ÉÎÂˆØİ[Y[™Ù][[Y[RY
+	Ü\œÛÛ‰ÊK˜[YHH][OËœ\œÛÛˆ	Õ]ÉÎÂˆYˆ
+][OË˜Ø]YÛÜJHØ]YÛÜK˜[YHH][K˜Ø]YÛÜNÂˆ\]TİX˜Ø]YÛÜšY\Ê][OËœİX˜Ø]YÛÜH	ÉÊNÂˆÙ]\J][OË\H\JNÂˆØİ[Y[œ]Y\TÙ[XİÜ[
+	Ë™›Ü›KY\œ›Ü‰ÊK™›Ü‘XXÚ
+[[Y[Oˆ[[Y[œ™[[İ™J
+JNÂˆX[ÙËœÚİÓ[Ù[
 
-async function activateSession(session) {
-  if (!session || !supabaseClient) return;
-  if (loadedUserId === session.user.id && !appShell.hidden) return;
-  const sequence = ++sessionLoadSequence;
-  try {
-    const { data: member, error: memberError } = await supabaseClient
-      .from('casa_miembros')
-      .select('id,hogar_id,auth_user_id,email,nombre,rol,activo')
-      .eq('auth_user_id', session.user.id)
-      .eq('activo', true)
-      .maybeSingle();
-    if (memberError) throw memberError;
-    if (!member) {
-      loadedUserId = null;
-      await supabaseClient.auth.signOut();
-      showAuth('Ese correo todavÃ­a no tiene acceso a este hogar. Revisa la direcciÃ³n o pide que te habiliten.', true);
-      return;
-    }
-    const [{ data: household, error: householdError }, { data: rows, error: movementsError }] = await Promise.all([
-      supabaseClient.from('casa_hogares')
-        .select('id,nombre,saldo_inicial,hucha_inicial,deuda_conchi_inicial,aportacion_inicial_tito,aportacion_inicial_sheila')
-        .eq('id', member.hogar_id).single(),
-      supabaseClient.from('casa_movimientos')
-        .select('*').eq('hogar_id', member.hogar_id).eq('archivado', false)
-        .order('periodo_anio').order('periodo_mes').order('fecha'),
-    ]);
-    if (householdError) throw householdError;
-    if (movementsError) throw movementsError;
-    if (sequence !== sessionLoadSequence) return;
-    currentUser = session.user;
-    currentMember = member;
-    loadedUserId = session.user.id;
-    db = {
-      openingBalance: Number(household.saldo_inicial || 0),
-      initialSavings: Number(household.hucha_inicial || 0),
-      initialConchiDebt: Number(household.deuda_conchi_inicial || 0),
-      initialTito: Number(household.aportacion_inicial_tito || 0),
-      initialSheila: Number(household.aportacion_inicial_sheila || 0),
-      movements: (rows || []).map(mapFromDatabase),
-    };
-    document.querySelector('.profile-button strong').textContent = member.nombre;
-    document.querySelector('.profile-button small').textContent = member.rol === 'admin' ? 'Administrador' : 'Solo lectura';
-    document.querySelector('.profile-button .avatar').textContent = (member.nombre || '?').slice(0, 1).toUpperCase();
-    setWriteAccess(member.rol === 'admin');
-    authGate.hidden = true;
-    appShell.hidden = false;
-    render();
-  } catch (error) {
-    showAuth('No se pudo cargar el hogar. Comprueba la conexiÃ³n e intÃ©ntalo de nuevo.', true);
-    console.error('No se pudo cargar Supabase:', error);
-  }
-}
-function setWriteAccess(canWrite) {
-  ['addMovement', 'addContribution', 'addContributionView', 'emptyAdd'].forEach(id => {
-    const button = document.getElementById(id);
-    if (button) button.hidden = !canWrite;
-  });
-}
-async function refreshMovements() {
-  const { data, error } = await supabaseClient.from('casa_movimientos')
-    .select('*').eq('hogar_id', currentMember.hogar_id).eq('archivado', false)
-    .order('periodo_anio').order('periodo_mes').order('fecha');
-  if (error) throw error;
-  db.movements = (data || []).map(mapFromDatabase);
-  render();
-}
+NÂˆÙ][Y[İ]
 
-function render() {
-  if (!currentMember) return;
-  const result = totals();
-  document.getElementById('monthLabel').textContent = `${monthName()} ${selectedYear}`;
-  document.getElementById('periodText').textContent = `${monthName().toLocaleLowerCase('es-ES')} de ${selectedYear}`;
-  document.getElementById('balanceValue').textContent = euro(result.balance);
-  document.getElementById('incomeValue').textContent = euro(result.income);
-  document.getElementById('expenseValue').textContent = euro(result.expense);
-  document.getElementById('netValue').textContent = euro(result.income - result.expense);
-  document.getElementById('balanceCaption').textContent = `Saldo inicial: ${euro(db.openingBalance)}`;
-  document.getElementById('expenseCount').textContent = `${result.expenses.length} ${result.expenses.length === 1 ? 'movimiento' : 'movimientos'}`;
-  renderHouseholdBalances();
-  const byPerson = { Tito: 0, Sheila: 0, Varios: 0 };
-  result.list.filter(item => item.type === 'ingreso').forEach(item => {
-    byPerson[item.person] = (byPerson[item.person] || 0) + item.amount;
-  });
-  document.getElementById('contributionTotal').textContent = euro(result.income);
-  document.getElementById('peopleList').innerHTML = ['Tito', 'Sheila'].map(name => `
-    <div class="person-row"><span class="person-avatar ${name.toLowerCase()}">${name[0]}</span>
-    <span class="person-name"><strong>${name}</strong><small>AportaciÃ³n del mes</small></span>
-    <span class="person-amount">${euro(byPerson[name] || 0)}</span>
-    <span class="person-track"><i style="width:${result.income ? Math.min(100, Math.max(0, (byPerson[name] || 0) / result.income * 100)) : 0}%"></i></span></div>`).join('');
-  renderMiniBars();
-  renderTransactions(result.list);
-  renderCategories(result.expenses);
-  renderSecondaryViews(result);
-}
-function renderMiniBars() {
-  const incomeBars = document.getElementById('incomeBars');
-  const expenseBars = document.getElementById('expenseBars');
-  incomeBars.innerHTML = '';
-  expenseBars.innerHTML = '';
-  const byMonth = Array.from({ length: 12 }, (_, month) => db.movements.filter(item => item.periodYear === selectedYear && item.periodMonth === month + 1));
-  const maxIncome = Math.max(1, ...byMonth.map(list => list.filter(item => item.type === 'ingreso').reduce((sum, item) => sum + item.amount, 0)));
-  const maxExpense = Math.max(1, ...byMonth.map(list => list.filter(item => item.type === 'gasto').reduce((sum, item) => sum + item.amount, 0)));
-  byMonth.slice(-6).forEach(list => {
-    const income = list.filter(item => item.type === 'ingreso').reduce((sum, item) => sum + item.amount, 0);
-    const expense = list.filter(item => item.type === 'gasto').reduce((sum, item) => sum + item.amount, 0);
-    const incomeBar = document.createElement('i');
-    const expenseBar = document.createElement('i');
-    incomeBar.style.height = `${Math.max(3, Math.min(22, income / maxIncome * 22))}px`;
-    expenseBar.style.height = `${Math.max(3, Math.min(22, expense / maxExpense * 22))}px`;
-    incomeBars.append(incomeBar);
-    expenseBars.append(expenseBar);
-  });
-}
-function transactionRow(item) {
-  const cashflow = item.type === 'ingreso' ? item.amount : -item.amount;
-  const positive = cashflow >= 0;
-  const date = new Date(`${item.date}T12:00:00`).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
-  const iconClass = item.type === 'ingreso' ? 'income' : item.category === 'Fijos' ? 'fixed' : 'variable';
-  const icon = item.type === 'ingreso' ? 'â†—' : item.category === 'Fijos' ? 'âŒ‚' : 'âœ³';
-  const actions = currentMember?.rol === 'admin'
-    ? `<span class="transaction-actions"><button aria-label="Editar" data-edit="${item.id}">âœ</button><button aria-label="Archivar" data-archive="${item.id}">Ã—</button></span>`
-    : '';
-  return `<div class="transaction-row"><span class="transaction-icon ${iconClass}">${icon}</span>
-    <span class="transaction-main"><strong>${escapeHtml(item.description)}</strong><small>${date} Â· ${escapeHtml(item.type === 'ingreso' ? (item.person || 'Varios') : item.category)}</small></span>
-    <span class="transaction-category"><strong>${item.type === 'ingreso' ? 'AportaciÃ³n' : escapeHtml(item.category)}</strong><small>${item.type === 'ingreso' ? 'Ingreso' : escapeHtml(item.subcategory || '')}</small></span>
-    <span class="transaction-amount ${positive ? 'income' : 'outflow'}">${positive ? '+' : 'âˆ’'}${euro(Math.abs(item.amount))}</span>${actions}</div>`;
-}
-function bindTransactionActions(host) {
-  host.querySelectorAll('[data-archive]').forEach(button => button.onclick = () => archiveMovement(button.dataset.archive));
-  host.querySelectorAll('[data-edit]').forEach(button => button.onclick = () => editMovement(button.dataset.edit));
-}
-function renderTransactions(list) {
-  const host = document.getElementById('transactionList');
-  const empty = document.getElementById('emptyTransactions');
-  const sorted = [...list].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);
-  host.innerHTML = sorted.slice(0, 6).map(transactionRow).join('');
-  empty.classList.toggle('show', list.length === 0);
-  host.style.display = list.length ? 'block' : 'none';
-  bindTransactionActions(host);
-}
-function renderCategories(expenses) {
-  const totalsByCategory = {};
-  expenses.forEach(item => totalsByCategory[item.category] = (totalsByCategory[item.category] || 0) + item.amount);
-  const pairs = Object.entries(totalsByCategory).sort((a, b) => b[1] - a[1]);
-  const host = document.getElementById('categoryOverview');
-  document.getElementById('emptyCategories').classList.toggle('show', !pairs.length);
-  host.innerHTML = pairs.slice(0, 8).map(([name, amount]) => `<div class="category-item"><div class="category-title"><span>${escapeHtml(name)}</span><strong>${euro(amount)}</strong></div><div class="category-track"><i style="width:${pairs[0][1] ? Math.max(3, Math.abs(amount / pairs[0][1] * 100)) : 3}%"></i></div></div>`).join('');
-}
-function renderSecondaryViews(result) {
-  document.querySelectorAll('.selected-month-inline').forEach(element => element.textContent = monthName().toLowerCase());
-  const search = (document.getElementById('movementSearch')?.value || '').trim().toLocaleLowerCase('es-ES');
-  const allHost = document.getElementById('allTransactionList');
-  const allEmpty = document.getElementById('emptyMovementView');
-  const day = document.getElementById('movementDay').value;
-  const sortDirection = document.getElementById('movementSort').value === 'oldest' ? 1 : -1;
-  const allRows = [...result.list]
-    .filter(item => (movementFilter === 'todos' || item.type === movementFilter)
-      && (!day || Number(item.date.slice(-2)) === Number(day))
-      && (movementCategories === null || (item.type === 'gasto' && movementCategories.has(item.category)))
-      && (!search || `${item.description} ${item.category} ${item.subcategory} ${item.person || ''}`.toLocaleLowerCase('es-ES').includes(search)))
-    .sort((a, b) => sortDirection * (a.date.localeCompare(b.date) || a.createdAt - b.createdAt));
-  allHost.innerHTML = allRows.map(transactionRow).join('');
-  allEmpty.classList.toggle('show', allRows.length === 0);
-  allHost.style.display = allRows.length ? 'block' : 'none';
-  document.getElementById('movementViewCount').textContent = `${allRows.length} ${allRows.length === 1 ? 'movimiento' : 'movimientos'}`;
-  bindTransactionActions(allHost);
-  document.querySelectorAll('[data-category-filter]').forEach(button => {
-    const key = button.dataset.categoryFilter;
-    const selected = key === 'TODOS'
-      ? movementCategories === null && movementFilter === 'todos'
-      : key === 'GASTOS'
-        ? movementFilter === 'gasto' && movementCategories === null
-        : movementCategories === null || movementCategories.has(key);
-    button.classList.toggle('active', selected);
-    button.setAttribute('aria-pressed', String(selected));
-  });
 
-  const incomes = result.list.filter(item => item.type === 'ingreso');
-  const byPerson = { Tito: 0, Sheila: 0, Varios: 0 };
-  incomes.forEach(item => byPerson[item.person] = (byPerson[item.person] || 0) + item.amount);
-  document.getElementById('contributionSummaryGrid').innerHTML = ['Tito', 'Sheila'].map(name => `
-    <article class="panel contribution-person-card"><span class="person-avatar ${name.toLowerCase()}">${name[0]}</span>
-    <span class="contribution-card-name">${name}</span><strong>${euro(byPerson[name] || 0)}</strong>
-    <small>Aportado en ${monthName().toLowerCase()}</small></article>`).join('') + `
-    <article class="panel contribution-person-card total-contribution-card"><span class="contribution-total-icon">ï¼‹</span>
-    <span class="contribution-card-name">Total aportado</span><strong>${euro(result.income)}</strong>
-    <small>Ingresos en la cuenta comÃºn</small></article>`;
-  const history = document.getElementById('contributionHistory');
-  history.innerHTML = [...incomes].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt).map(transactionRow).join('');
-  history.style.display = incomes.length ? 'block' : 'none';
-  document.getElementById('emptyContributionView').classList.toggle('show', !incomes.length);
-  bindTransactionActions(history);
+HOˆØİ[Y[™Ù][[Y[RY
+	Ù\ØÜš\[Û‰ÊK™›Øİ\Ê
+KL
+NÂŸB™[˜İ[ÛˆÙ]\J\JHÂˆØİ[Y[™Ù][[Y[RY
+	Û[İ™[Y[\IÊK˜[YHH\NÂˆØİ[Y[œ]Y\TÙ[XİÜ[
+	Ë\K[Ü[Û‰ÊK™›Ü‘XXÚ
+]ÛˆOˆ]Û‹˜Û\ÜÓ\İÙÙÛJ	ØXİ]™IË]Û‹™]\Ù]\HOOH\JJNÂˆÛÛœİ[˜ÛÛYHH\HOOH	Ú[™Ü™\ÛÉÎÂˆØİ[Y[™Ù][[Y[RY
+	ØØ]YÛÜQšY[	ÊKœİ[K™\Ü^HH[˜ÛÛYHÈ	Û›Û™IÈˆ	ÙÜšY	ÎÂˆØİ[Y[™Ù][[Y[RY
+	ÜİX˜Ø]YÛÜQšY[	ÊKœİ[K™\Ü^HH[˜ÛÛYHÈ	Û›Û™IÈˆ	ÙÜšY	ÎÂˆØİ[Y[™Ù][[Y[RY
+	Ü\œÛÛ‘šY[	ÊKœİ[K™\Ü^HH[˜ÛÛYHÈ	ÙÜšY	Èˆ	Û›Û™IÎÂˆØİ[Y[™Ù][[Y[RY
+	ØØ]YÛÜIÊKœ™\]Z\™YHZ[˜ÛÛYNÂˆØİ[Y[™Ù][[Y[RY
+	ÜİX˜Ø]YÛÜIÊKœ™\]Z\™YHZ[˜ÛÛYNÂˆØİ[Y[™Ù][[Y[RY
+	Ø[[İ[	ÊK›Z[ˆH[˜ÛÛYHÈ	ÌŒIÈˆ	ËNNNNNNNIÎÂˆØİ[Y[™Ù][[Y[RY
+	Ø[[İ[[	ÊKšY[ˆH[˜ÛÛYNÂˆØİ[Y[™Ù][[Y[RY
+	ÙX[ÙÕ]IÊK^ÛÛ[HY][™ÒYÈ	ÑY]\ˆ[İš[ZY[ÉÈˆ[˜ÛÛYHÈ	ĞpìXY\ˆ[™Ü™\ÛÈÈ\ÜXÚpìÛ‰Èˆ	ĞpìXY\ˆØ\İÉÎÂŸB™[˜İ[Ûˆ\]TİX˜Ø]YÛÜšY\ÊÙ[XİYH	ÉÊHÂˆÛÛœİØ]YÛÜHHØİ[Y[™Ù][[Y[RY
+	ØØ]YÛÜIÊK˜[YNÂˆÛÛœİÙ[XİHØİ[Y[™Ù][[Y[RY
+	ÜİX˜Ø]YÛÜIÊNÂˆÛÛœİÜ[ÛœÈHĞUQÓÔ’QTÖØØ]YÛÜWH×NÂˆÙ[Xİš[›™\’SH	ÏÜ[Ûˆ˜[YOHˆ‘[YÙH[˜HİX˜Ø]YÛÜ°ëXOÛÜ[Û‰È
+ÈÜ[ÛœË›X\
+˜[YHOˆÜ[Û‰Ù\ØØ\R[
+˜[YJ_OÛÜ[Û˜
+Kš›Ú[Š	ÉÊNÂˆYˆ
+Ü[ÛœËš[˜ÛY\ÊÙ[XİY
+JHÙ[Xİ˜[YHHÙ[XİYÂŸB™[˜İ[ÛˆÛÜÙQX[ÙÊ
+HÈX[ÙË˜ÛÜÙJ
+NÈY][™ÒYH[ÈB˜\Ş[˜È[˜İ[ÛˆØ]™S[İ™[Y[
+]™[
+HÂˆ]™[œ™]™[Y˜][
 
-  const groups = {};
-  result.expenses.forEach(item => {
-    const category = item.category || 'Otros';
-    const subcategory = item.subcategory || 'Otros';
-    groups[category] ??= { total: 0, subs: {} };
-    groups[category].total += item.amount;
-    groups[category].subs[subcategory] = (groups[category].subs[subcategory] || 0) + item.amount;
-  });
-  const groupList = Object.entries(groups).sort((a, b) => b[1].total - a[1].total);
-  document.getElementById('categoryDetailList').innerHTML = groupList.map(([name, data]) => `
-    <article class="category-detail-card"><div class="category-detail-head"><span class="category-detail-icon">${name === 'Fijos' ? 'âŒ‚' : 'âœ³'}</span>
-    <div><strong>${escapeHtml(name)}</strong><small>${Object.keys(data.subs).length} ${Object.keys(data.subs).length === 1 ? 'subcategorÃ­a' : 'subcategorÃ­as'}</small></div>
-    <b>${euro(data.total)}</b></div><div class="subcategory-breakdown">${Object.entries(data.subs).sort((a, b) => b[1] - a[1]).map(([subcategory, amount]) => `
-      <div><span>${escapeHtml(subcategory)}</span><strong>${euro(amount)}</strong></div>`).join('')}</div></article>`).join('');
-  document.getElementById('emptyCategoryView').classList.toggle('show', !groupList.length);
-  renderFixedMonthly();
-}
+NÂˆYˆ
+İ\œ™[Y[X™\Ëœ›ÛOOH	ØYZ[‰ÊH™]\›ÂˆÛÛœİ\HHØİ[Y[™Ù][[Y[RY
+	Û[İ™[Y[\IÊK˜[YNÂˆÛÛœİ[[İ[H[X™\ŠØİ[Y[™Ù][[Y[RY
+	Ø[[İ[	ÊK˜[YJNÂˆYˆ
+S[X™\‹š\Ñš[š]J[[İ[
+H[[İ[OOH
+\HOOH	Ú[™Ü™\ÛÉÈ	‰ˆ[[İ[
+JH™]\›ÂˆÛÛœİ]HHØİ[Y[™Ù][[Y[RY
+	Ù]IÊK˜[YNÂˆÛÛœİ\š[Ù˜[YHHØİ[Y[™Ù][[Y[RY
+	Ü\š[Ù[Û	ÊK˜[YNÂˆÛÛœİÜ\š[ÙYX\‹\š[Ù[ÛHH\š[Ù˜[YKœÜ]
+	ËIÊK›X\
+[X™\ŠNÂˆÛÛœİ[İ™[Y[HÂˆÙØ\—ÚYˆİ\œ™[Y[X™\‹šÙØ\—ÚYˆ™XÚNˆ]Kˆ\š[Ù×Ø[š[Îˆ\š[ÙYX\‹ˆ\š[Ù×ÛY\Îˆ\š[Ù[Ûˆ\ØÜš\Ú[ÛˆØİ[Y[™Ù][[Y[RY
+	Ù\ØÜš\[Û‰ÊK˜[YKš[J
+Kˆ\Îˆ\KˆØ]YÛÜšXNˆ\HOOH	Ú[™Ü™\ÛÉÈÈ	Ğ\ÜXÚpìÛ‰ÈˆØİ[Y[™Ù][[Y[RY
+	ØØ]YÛÜIÊK˜[YKˆİX˜Ø]YÛÜšXNˆ\HOOH	Ú[™Ü™\ÛÉÈÈØİ[Y[™Ù][[Y[RY
+	Ü\œÛÛ‰ÊK˜[YHˆØİ[Y[™Ù][[Y[RY
+	ÜİX˜Ø]YÛÜIÊK˜[YKˆ\œÛÛ˜Nˆ\HOOH	Ú[™Ü™\ÛÉÈÈØİ[Y[™Ù][[Y[RY
+	Ü\œÛÛ‰ÊK˜[YHˆ[ˆ[\ÜNˆ[[İ[ˆ›İ\ÎˆØİ[Y[™Ù][[Y[RY
+	Û›İ\ÉÊK˜[YKš[J
+KˆÜ™XY×ÜÜˆİ\œ™[\Ù\‹šYˆNÂˆYˆ
+Y]H\\š[ÙYX\ˆ\\š[Ù[Û[[İ™[Y[™\ØÜš\Ú[ÛŠH™]\›ÂˆYˆ
+T×ÓĞĞSÑ’SJHÂˆÛÛœİØØ[[İ™[Y[HÂˆYˆY][™ÒY
+Ü\Ëœ˜[™ÛUURQÈÜ\Ëœ˜[™ÛUURQ
 
-function renderFixedMonthly() {
-  const templates = fixedMonthlyTemplates();
-  const host = document.getElementById('fixedMonthlyList');
-  if (!host) return;
-  document.getElementById('fixedMonthLabel').textContent = `${monthName()} ${selectedYear}`;
-  const rows = templates.map(template => {
-    const applied = db.movements.find(item => forCurrentPeriod(item) && (
-      item.fixedTemplateId === template.id || (!item.fixedTemplateId
-        && normalizeFixedDescription(item.description) === normalizeFixedDescription(template.description)
-        && item.type === template.type && item.category === template.category
-        && item.subcategory === template.subcategory && (item.person || '') === (template.person || '')
-        && (template.amount == null || Math.abs(item.amount) === Math.abs(template.amount)))
-    ));
-    const alreadyApplied = Boolean(applied);
-    const details = template.type === 'ingreso'
-      ? `Ingreso Â· ${template.person}`
-      : `Gasto Â· ${template.category} Â· ${template.subcategory}`;
-    return `<article class="fixed-monthly-row ${alreadyApplied ? 'is-applied' : ''}" data-fixed-id="${template.id}">
-      <div class="fixed-monthly-details"><strong>${escapeHtml(details)}</strong><small>${alreadyApplied ? 'Ya estÃ¡ en movimientos de este mes' : 'Fecha del movimiento Â· pertenece a ' + monthName().toLowerCase()}</small></div>
-      <div class="fixed-monthly-fields">
-        <label>DescripciÃ³n<input data-fixed-description value="${escapeHtml(template.description)}" maxlength="100" ${alreadyApplied ? 'disabled' : ''}></label>
-        <label>Importe<input data-fixed-amount type="number" step="0.01" value="${template.amount ?? ''}" placeholder="Indica el importe" ${alreadyApplied ? 'disabled' : ''}></label>
-        <label>Fecha<input data-fixed-date type="date" required ${alreadyApplied ? 'disabled' : ''}></label>
-      </div>
-      ${alreadyApplied ? '<span class="fixed-monthly-applied">âœ“ Aplicado</span>' : '<button class="fixed-monthly-apply" type="button" data-fixed-apply aria-label="AÃ±adir movimiento">âœ“</button>'}
-    </article>`;
-  });
-  host.innerHTML = rows.join('');
-  const appliedCount = host.querySelectorAll('.is-applied').length;
-  document.getElementById('fixedMonthlyCount').textContent = `${appliedCount} de ${templates.length} aplicados`;
-  document.getElementById('fixedMonthlySummary').textContent = currentMember?.rol === 'admin'
-    ? 'Completa la fecha real y confirma con âœ“. Puedes retocar la descripciÃ³n y el importe antes de aÃ±adirlo.'
-    : 'Consulta los movimientos fijos previstos y cuÃ¡les ya se han aÃ±adido.';
-  document.getElementById('emptyFixedMonthly').classList.toggle('show', templates.length === 0);
-}
+HˆØØ[IÑ]K››İÊ
+_KIÓX]œ˜[™ÛJ
+KÔİš[™ÊMŠKœÛXÙJŠ_X
+Kˆ]K\š[ÙYX\‹\š[Ù[Û\ØÜš\[Ûˆ[İ™[Y[™\ØÜš\Ú[Û‹\KˆØ]YÛÜNˆ[İ™[Y[˜Ø]YÛÜšXKİX˜Ø]YÛÜNˆ[İ™[Y[œİX˜Ø]YÛÜšXKˆ\œÛÛˆ[İ™[Y[œ\œÛÛ˜K[[İ[›İ\Îˆ[İ™[Y[››İ\ËÜ™X]Y]ˆ]K››İÊ
+KˆNÂˆYˆ
+Y][™ÒY
+H‹›[İ™[Y[ÈH‹›[İ™[Y[Ë›X\
+][HOˆ][KšYOOHY][™ÒYÈØØ[[İ™[Y[ˆ][JNÂˆ[ÙH‹›[İ™[Y[Ëœ\Ú
+ØØ[[İ™[Y[
+NÂˆØ]™SØØ[]J
+NÂˆÙ[XİYYX\ˆH\š[ÙYX\ÂˆÙ[XİY[ÛH\š[Ù[ÛHNÂˆÛÜÙQX[ÙÊ
+NÂˆ™[™\Š
+NÂˆØ\İ
+	ÑİX\™YÈÛÛÈ[ˆ\İH˜]™YØYÜ‰ÊNÂˆ™]\›ÂˆBˆHÂˆÛÛœİ™\ÜÛœÙHHY][™ÒYˆÈ]ØZ]İ\X˜\ÙPÛY[™œ›ÛJ	ØØ\ØWÛ[İš[ZY[ÜÉÊK\]J[İ™[Y[
+K™\J	ÚY	ËY][™ÒY
+K™\J	ÚÙØ\—ÚY	Ëİ\œ™[Y[X™\‹šÙØ\—ÚY
+Bˆˆ]ØZ]İ\X˜\ÙPÛY[™œ›ÛJ	ØØ\ØWÛ[İš[ZY[ÜÉÊKš[œÙ\
+[İ™[Y[
+NÂˆYˆ
+™\ÜÛœÙK™\œ›ÜŠH›İÈ™\ÜÛœÙK™\œ›ÜÂˆÙ[XİYYX\ˆH\š[ÙYX\ÂˆÙ[XİY[ÛH\š[Ù[ÛHNÂˆÛÜÙQX[ÙÊ
+NÂˆ]ØZ]™Yœ™\Ú[İ™[Y[Ê
+NÂˆØ\İ
+Y][™ÒYÈ	Ó[İš[ZY[ÈXİX[^˜YÉÈˆ	Ó[İš[ZY[ÈİX\™YÉÊNÂˆHØ]Ú
+\œ›ÜŠHÂˆØ\İ
+	Ó›ÈÙHYÈİX\™\ˆ[[İš[ZY[Ëˆ[0ê[[ÈHY]›Ë‰ËYJNÂˆÛÛœÛÛK™\œ›ÜŠ	Ñ\œ›Üˆ[İX\™\ˆ[İš[ZY[Î‰Ë\œ›ÜŠNÂˆBŸB˜\Ş[˜È[˜İ[Ûˆ\˜Ú]™S[İ™[Y[
+Y
+HÂˆÛÛœİ[İ™[Y[H‹›[İ™[Y[Ë™š[™
+][HOˆ][KšYOOHY
+NÂˆYˆ
+[[İ™[Y[İ\œ™[Y[X™\Ëœ›ÛOOH	ØYZ[‰ÈXÛÛ™š\›J0¯Ğ\˜Ú]˜\ˆ0ªÉÛ[İ™[Y[™\ØÜš\[ÛŸp®ÏØ
+JH™]\›ÂˆYˆ
+T×ÓĞĞSÑ’SJHÂˆ‹›[İ™[Y[ÈH‹›[İ™[Y[Ë™š[\Š][HOˆ][KšYOOHY
+NÂˆØ]™SØØ[]J
+NÂˆ™[™\Š
+NÂˆØ\İ
+	Ó[İš[ZY[È]Z]YÈH\İH˜]™YØYÜ‰ÊNÂˆ™]\›ÂˆBˆÛÛœİÈ\œ›ÜˆHH]ØZ]İ\X˜\ÙPÛY[™œ›ÛJ	ØØ\ØWÛ[İš[ZY[ÜÉÊK\]JÈ\˜Ú]˜YÎˆYHJK™\J	ÚY	ËY
+K™\J	ÚÙØ\—ÚY	Ëİ\œ™[Y[X™\‹šÙØ\—ÚY
+NÂˆYˆ
+\œ›ÜŠHÈØ\İ
+	Ó›ÈÙHYÈ\˜Ú]˜\ˆ[[İš[ZY[Ë‰ËYJNÈ™]\›ÈBˆ]ØZ]™Yœ™\Ú[İ™[Y[Ê
+NÂˆØ\İ
+	Ó[İš[ZY[È\˜Ú]˜YÉÊNÂŸB™[˜İ[ÛˆY][İ™[Y[
+Y
+HÂˆÛÛœİ[İ™[Y[H‹›[İ™[Y[Ë™š[™
+][HOˆ][KšYOOHY
+NÂˆYˆ
+[İ™[Y[
+HÜ[“[İ™[Y[
+[İ™[Y[\K[İ™[Y[
+NÂŸB‚™Øİ[Y[™Ù][[Y[RY
+	Ø]]›Ü›IÊK˜Y]™[\İ[™\Š	ÜİX›Z]	Ë\Ş[˜È]™[OˆÂˆ]™[œ™]™[Y˜][
 
-async function applyFixedMonthly(button) {
-  if (currentMember?.rol !== 'admin') return;
-  const row = button.closest('[data-fixed-id]');
-  const template = fixedMonthlyTemplates().find(item => item.id === row?.dataset.fixedId);
-  if (!template) return;
-  const date = row.querySelector('[data-fixed-date]').value;
-  const description = row.querySelector('[data-fixed-description]').value.trim();
-  const rawAmount = row.querySelector('[data-fixed-amount]').value;
-  const amount = Number(rawAmount);
-  if (!date) { toast('Indica la fecha del movimiento.', true); return; }
-  if (!description) { toast('Escribe una descripciÃ³n.', true); return; }
-  if (rawAmount === '' || !Number.isFinite(amount) || amount === 0 || (template.type === 'ingreso' && amount < 0)) {
-    toast('Indica un importe vÃ¡lido.', true); return;
-  }
-  const movement = {
-    hogar_id: currentMember.hogar_id,
-    fecha: date,
-    periodo_anio: selectedYear,
-    periodo_mes: selectedMonth + 1,
-    descripcion: description,
-    tipo: template.type,
-    categoria: template.category,
-    subcategoria: template.subcategory,
-    persona: template.person || null,
-    importe: amount,
-    notas: '',
-    creado_por: currentUser?.id || null,
-    plantilla_fijo_id: template.id,
-  };
-  try {
-    if (IS_LOCAL_FILE) {
-      db.movements.push({ id: crypto.randomUUID(), date, periodYear: selectedYear, periodMonth: selectedMonth + 1,
-        description, type: template.type, category: template.category, subcategory: template.subcategory,
-        person: template.person || null, amount, notes: '', fixedTemplateId: template.id, createdAt: Date.now() });
-      saveLocalData();
-    } else {
-      const { error } = await supabaseClient.from('casa_movimientos').insert(movement);
-      if (error) throw error;
-      await refreshMovements();
-    }
-    render();
-    toast('Movimiento fijo aÃ±adido');
-  } catch (error) {
-    if (error.code === '23505') {
-      await refreshMovements();
-      toast('Este fijo ya estaba aÃ±adido para el mes.', true);
-    } else {
-      console.error('No se pudo aplicar el fijo:', error);
-      toast('No se pudo aÃ±adir el movimiento fijo.', true);
-    }
-  }
-}
+NÂˆÛÛœİ[XZ[HØİ[Y[™Ù][[Y[RY
+	Ø]][XZ[	ÊK˜[YKš[J
+NÂˆÛÛœİ]ÛˆHØİ[Y[™Ù][[Y[RY
+	ÜÙ[™XYÚXÓ[šÉÊNÂˆYˆ
+\İ\X˜\ÙPÛY[
+HÈÚİĞ]]
+	Ó›ÈÙHYÈ[šXÚX\ˆHÛÛ™^pìÛˆÛÛˆH˜\ÙHH]ÜË‰ËYJNÈ™]\›ÈBˆ]Û‹™\ØX›YHYNÂˆ]]Y\ÜØYÙK˜Û\ÜÓ\İœ™[[İ™J	Ù\œ›Ü‰ÊNÂˆ]]Y\ÜØYÙK^ÛÛ[H	Ñ[šX[™È[›XÙx )‰ÎÂˆÛÛœİÈ\œ›ÜˆHH]ØZ]İ\X˜\ÙPÛY[˜]]œÚYÛ’[•Ú]İ
+Âˆ[XZ[ˆÜ[ÛœÎˆÈ[XZ[™Y\™XİÎˆ	İÚ[™İË›ØØ][Û‹›ÜšYÚ[ŸIİÚ[™İË›ØØ][Û‹œ]˜[Y_XKˆJNÂˆ]Û‹™\ØX›YH˜[ÙNÂˆYˆ
+\œ›ÜŠHÂˆYˆ
+\œ›Ü‹˜ÛÙHOOH	Ûİ™\—Ù[XZ[ÜÙ[™Ü˜]WÛ[Z]	ÊHÂˆ]]Y\ÜØYÙK^ÛÛ[H	ÔÙH[Ø[°ìÈ[0ë[Z]HHÛÜœ™[ÜÈHXØÙ\ÛÈHİ\X˜\ÙKˆ\Ü\˜H[ˆØÛÈ[\ÈH›Û™\ˆHY\›Ë‰ÎÂˆH[ÙHYˆ
+\œ›Ü‹˜ÛÙHOOH	Ù[XZ[ØY™\Ü×Û›İØ]]Üš^™Y	ÊHÂˆ]]Y\ÜØYÙK^ÛÛ[H	Ôİ\X˜\ÙH›È\›Z]H[šX\ˆÛÜœ™[ÜÈH\İH\™XØÚpìÛˆÛÛˆ[Ù\šXÚ[ÈHYX˜KˆXÙH˜[HÛÛ™šYİ\˜\ˆ[ˆ›İ™YYÜˆHÛÜœ™[Ë‰ÎÂˆH[ÙHÂˆ]]Y\ÜØYÙK^ÛÛ[H	Ó›ÈÙHYÈ[šX\ˆ[[›XÙKˆ[0ê[[ÈHY]›Ë‰ÎÂˆBˆ]]Y\ÜØYÙK˜Û\ÜÓ\İ˜Y
+	Ù\œ›Ü‰ÊNÂˆÛÛœÛÛK™\œ›ÜŠ	Ñ\œ›ÜˆH[šXÚ[ÈHÙ\ÚpìÛ‰Ë\œ›ÜŠNÂˆ™]\›ÂˆBˆ]]Y\ÜØYÙK^ÛÛ[H	ÔÚH[ÛÜœ™[È\İ0èHXš[]YË™XÚXš\°è\È[ˆ[›XÙHHXØÙ\ÛË‰ÎÂŸJNÂ‚™Øİ[Y[™Ù][[Y[RY
+	ÜÚYÛ“İ]	ÊK›Û˜ÛXÚÈH\Ş[˜È
 
-const VIEW_META = {
-  inicio: { title: 'Resumen', subtitle: 'Todo lo que entra y sale de vuestra cuenta comÃºn.' },
-  movimientos: { title: 'Movimientos', subtitle: 'Consulta y busca los ingresos y gastos del mes.' },
-  aportaciones: { title: 'Aportaciones', subtitle: 'Lo que Tito y Sheila ingresan en la cuenta comÃºn.' },
-  fijos: { title: 'Fijos mensuales', subtitle: 'Movimientos previstos para cada mes.' },
-  categorias: { title: 'CategorÃ­as', subtitle: 'Descubre en quÃ© se distribuyen los gastos del mes.' },
-};
-function setView(view) {
-  if (!VIEW_META[view]) return;
-  activeView = view;
-  document.getElementById('pageTitle').textContent = VIEW_META[view].title;
-  document.getElementById('pageSubtitle').textContent = VIEW_META[view].subtitle;
-  document.getElementById('breadcrumb').textContent = VIEW_META[view].title;
-  document.getElementById('dashboardView').hidden = view !== 'inicio';
-  document.getElementById('secondaryView').hidden = view === 'inicio';
-  document.querySelectorAll('.secondary-page').forEach(section => section.hidden = section.id !== `${view}View`);
-  document.querySelectorAll('.nav-link').forEach(link => {
-    const active = link.dataset.view === view;
-    link.classList.toggle('active', active);
-    if (active) link.setAttribute('aria-current', 'page');
-    else link.removeAttribute('aria-current');
-  });
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
+HOˆÈ]ØZ]İ\X˜\ÙPÛY[˜]]œÚYÛ“İ]
 
-async function openMovement(type = 'gasto', item = null) {
-  if (currentMember?.rol !== 'admin') return;
-  editingId = item?.id || null;
-  form.reset();
-  const period = document.getElementById('periodMonth');
-  const periodYear = item?.periodYear ?? selectedYear;
-  const periodMonth = item?.periodMonth ?? selectedMonth + 1;
-  period.value = `${periodYear}-${String(periodMonth).padStart(2, '0')}`;
-  document.getElementById('date').value = item?.date || dateForInput();
-  const category = document.getElementById('category');
-  category.innerHTML = Object.keys(CATEGORIES).map(name => `<option>${escapeHtml(name)}</option>`).join('');
-  document.getElementById('description').value = item?.description || '';
-  document.getElementById('amount').value = item?.amount ?? '';
-  document.getElementById('notes').value = item?.notes || '';
-  document.getElementById('person').value = item?.person || 'Tito';
-  if (item?.category) category.value = item.category;
-  updateSubcategories(item?.subcategory || '');
-  setType(item?.type || type);
-  document.querySelectorAll('.form-error').forEach(element => element.remove());
-  dialog.showModal();
-  setTimeout(() => document.getElementById('description').focus(), 50);
-}
-function setType(type) {
-  document.getElementById('movementType').value = type;
-  document.querySelectorAll('.type-option').forEach(button => button.classList.toggle('active', button.dataset.type === type));
-  const income = type === 'ingreso';
-  document.getElementById('categoryField').style.display = income ? 'none' : 'grid';
-  document.getElementById('subcategoryField').style.display = income ? 'none' : 'grid';
-  document.getElementById('personField').style.display = income ? 'grid' : 'none';
-  document.getElementById('category').required = !income;
-  document.getElementById('subcategory').required = !income;
-  document.getElementById('amount').min = income ? '0.01' : '-9999999';
-  document.getElementById('amountHint').hidden = income;
-  document.getElementById('dialogTitle').textContent = editingId ? 'Editar movimiento' : income ? 'AÃ±adir ingreso o aportaciÃ³n' : 'AÃ±adir gasto';
-}
-function updateSubcategories(selected = '') {
-  const category = document.getElementById('category').value;
-  const select = document.getElementById('subcategory');
-  const options = CATEGORIES[category] || [];
-  select.innerHTML = '<option value="">Elige una subcategorÃ­a</option>' + options.map(value => `<option>${escapeHtml(value)}</option>`).join('');
-  if (options.includes(selected)) select.value = selected;
-}
-function closeDialog() { dialog.close(); editingId = null; }
-async function saveMovement(event) {
-  event.preventDefault();
-  if (currentMember?.rol !== 'admin') return;
-  const type = document.getElementById('movementType').value;
-  const amount = Number(document.getElementById('amount').value);
-  if (!Number.isFinite(amount) || amount === 0 || (type === 'ingreso' && amount < 0)) return;
-  const date = document.getElementById('date').value;
-  const periodValue = document.getElementById('periodMonth').value;
-  const [periodYear, periodMonth] = periodValue.split('-').map(Number);
-  const movement = {
-    hogar_id: currentMember.hogar_id,
-    fecha: date,
-    periodo_anio: periodYear,
-    periodo_mes: periodMonth,
-    descripcion: document.getElementById('description').value.trim(),
-    tipo: type,
-    categoria: type === 'ingreso' ? 'AportaciÃ³n' : document.getElementById('category').value,
-    subcategoria: type === 'ingreso' ? document.getElementById('person').value : document.getElementById('subcategory').value,
-    persona: type === 'ingreso' ? document.getElementById('person').value : null,
-    importe: amount,
-    notas: document.getElementById('notes').value.trim(),
-    creado_por: currentUser.id,
-  };
-  if (!date || !periodYear || !periodMonth || !movement.descripcion) return;
-  if (IS_LOCAL_FILE) {
-    const localMovement = {
-      id: editingId || (crypto.randomUUID ? crypto.randomUUID() : `local-${Date.now()}-${Math.random().toString(16).slice(2)}`),
-      date, periodYear, periodMonth, description: movement.descripcion, type,
-      category: movement.categoria, subcategory: movement.subcategoria,
-      person: movement.persona, amount, notes: movement.notas, createdAt: Date.now(),
-    };
-    if (editingId) db.movements = db.movements.map(item => item.id === editingId ? localMovement : item);
-    else db.movements.push(localMovement);
-    saveLocalData();
-    selectedYear = periodYear;
-    selectedMonth = periodMonth - 1;
-    closeDialog();
-    render();
-    toast('Guardado solo en este navegador');
-    return;
-  }
-  try {
-    const response = editingId
-      ? await supabaseClient.from('casa_movimientos').update(movement).eq('id', editingId).eq('hogar_id', currentMember.hogar_id)
-      : await supabaseClient.from('casa_movimientos').insert(movement);
-    if (response.error) throw response.error;
-    selectedYear = periodYear;
-    selectedMonth = periodMonth - 1;
-    closeDialog();
-    await refreshMovements();
-    toast(editingId ? 'Movimiento actualizado' : 'Movimiento guardado');
-  } catch (error) {
-    toast('No se pudo guardar el movimiento. IntÃ©ntalo de nuevo.', true);
-    console.error('Error al guardar movimiento:', error);
-  }
-}
-async function archiveMovement(id) {
-  const movement = db.movements.find(item => item.id === id);
-  if (!movement || currentMember?.rol !== 'admin' || !confirm(`Â¿Archivar Â«${movement.description}Â»?`)) return;
-  if (IS_LOCAL_FILE) {
-    db.movements = db.movements.filter(item => item.id !== id);
-    saveLocalData();
-    render();
-    toast('Movimiento quitado de este navegador');
-    return;
-  }
-  const { error } = await supabaseClient.from('casa_movimientos').update({ archivado: true }).eq('id', id).eq('hogar_id', currentMember.hogar_id);
-  if (error) { toast('No se pudo archivar el movimiento.', true); return; }
-  await refreshMovements();
-  toast('Movimiento archivado');
-}
-function editMovement(id) {
-  const movement = db.movements.find(item => item.id === id);
-  if (movement) openMovement(movement.type, movement);
-}
+NÈNÂ™Øİ[Y[™Ù][[Y[RY
+	ØY[İ™[Y[	ÊK›Û˜ÛXÚÈH
 
-document.getElementById('authForm').addEventListener('submit', async event => {
-  event.preventDefault();
-  const email = document.getElementById('authEmail').value.trim();
-  const button = document.getElementById('sendMagicLink');
-  if (!supabaseClient) { showAuth('No se pudo iniciar la conexiÃ³n con la base de datos.', true); return; }
-  button.disabled = true;
-  authMessage.classList.remove('error');
-  authMessage.textContent = 'Enviando enlaceâ€¦';
-  const { error } = await supabaseClient.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: `${window.location.origin}${window.location.pathname}` },
-  });
-  button.disabled = false;
-  if (error) {
-    if (error.code === 'over_email_send_rate_limit') {
-      authMessage.textContent = 'Se alcanzÃ³ el lÃ­mite de correos de acceso de Supabase. Espera un poco antes de volver a pedirlo.';
-    } else if (error.code === 'email_address_not_authorized') {
-      authMessage.textContent = 'Supabase no permite enviar correos a esta direcciÃ³n con el servicio de prueba. Hace falta configurar un proveedor de correo.';
-    } else {
-      authMessage.textContent = 'No se pudo enviar el enlace. IntÃ©ntalo de nuevo.';
-    }
-    authMessage.classList.add('error');
-    console.error('Error de inicio de sesiÃ³n:', error);
-    return;
-  }
-  authMessage.textContent = 'Si el correo estÃ¡ habilitado, recibirÃ¡s un enlace de acceso.';
-});
+HOˆÜ[“[İ™[Y[
+	ÙØ\İÉÊNÂ™Øİ[Y[™Ù][[Y[RY
+	Ù[\PY	ÊK›Û˜ÛXÚÈH
 
-document.getElementById('signOut').onclick = async () => { await supabaseClient.auth.signOut(); };
-document.getElementById('addMovement').onclick = () => openMovement('gasto');
-document.getElementById('emptyAdd').onclick = () => openMovement('gasto');
-document.getElementById('addContribution').onclick = () => openMovement('ingreso');
-document.getElementById('addContributionView').onclick = () => openMovement('ingreso');
-document.getElementById('closeDialog').onclick = closeDialog;
-document.getElementById('cancelDialog').onclick = closeDialog;
-document.querySelectorAll('.type-option').forEach(button => button.onclick = () => setType(button.dataset.type));
-document.getElementById('category').addEventListener('change', () => updateSubcategories());
-form.addEventListener('submit', saveMovement);
-document.getElementById('prevMonth').onclick = () => moveMonth(-1);
-document.getElementById('nextMonth').onclick = () => moveMonth(1);
-document.getElementById('currentMonth').onclick = () => { selectedYear = now.getFullYear(); selectedMonth = now.getMonth(); render(); };
-document.getElementById('movementDay').innerHTML += Array.from({ length: 31 }, (_, index) => `<option value="${index + 1}">${index + 1}</option>`).join('');
-document.getElementById('categoryFilters').innerHTML = `<button type="button" class="category-filter active" data-category-filter="TODOS" aria-pressed="true">TODOS</button><button type="button" class="category-filter" data-category-filter="GASTOS" aria-pressed="false">GASTOS</button>` + Object.keys(CATEGORIES).map(category => `<button type="button" class="category-filter active" data-category-filter="${escapeHtml(category)}" aria-pressed="true">${escapeHtml(category)}</button>`).join('');
-document.querySelectorAll('[data-category-filter]').forEach(button => button.addEventListener('click', () => {
-  const category = button.dataset.categoryFilter;
-  if (category === 'TODOS') { movementCategories = null; movementFilter = 'todos'; }
-  else if (category === 'GASTOS') { movementCategories = null; movementFilter = 'gasto'; }
-  else {
-    if (movementCategories === null) movementCategories = new Set([category]);
-    else if (movementCategories.has(category)) movementCategories.delete(category);
-    else movementCategories.add(category);
-    movementFilter = 'gasto';
-  }
-  render();
-}));
-document.getElementById('movementDay').addEventListener('change', () => render());
-document.getElementById('movementSort').addEventListener('change', () => render());
-function moveMonth(offset) {
-  const next = new Date(selectedYear, selectedMonth + offset, 1);
-  selectedYear = next.getFullYear();
-  selectedMonth = next.getMonth();
-  render();
-}
-document.querySelectorAll('[data-view]').forEach(element => element.addEventListener('click', event => {
-  event.preventDefault();
-  setView(element.dataset.view);
-}));
-document.getElementById('fixedMonthlyList').addEventListener('click', event => {
-  const button = event.target.closest('[data-fixed-apply]');
-  if (button) applyFixedMonthly(button);
-});
-document.getElementById('movementSearch').addEventListener('input', () => render());
+HOˆÜ[“[İ™[Y[
+	ÙØ\İÉÊNÂ™Øİ[Y[™Ù][[Y[RY
+	ØYÛÛšX][Û‰ÊK›Û˜ÛXÚÈH
 
-clientEventListener();
-async function clientEventListener() {
-  if (IS_LOCAL_FILE) {
-    loadLocalData();
-    currentMember = { rol: 'admin', hogar_id: HOUSEHOLD_ID };
-    currentUser = { id: 'local-only' };
-    document.querySelector('.profile-button strong').textContent = 'Modo local';
-    document.querySelector('.profile-button small').textContent = 'Solo este navegador';
-    document.querySelector('.profile-button .avatar').textContent = 'L';
-    document.getElementById('syncStatusText').textContent = 'Guardado en este navegador';
-    document.getElementById('signOut').hidden = true;
-    setWriteAccess(true);
-    authGate.hidden = true;
-    appShell.hidden = false;
-    render();
-    return;
-  }
-  if (!supabaseClient) {
-    showAuth('Falta la configuraciÃ³n pÃºblica de Supabase.', true);
-    return;
-  }
-  supabaseClient.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_OUT') {
-      sessionLoadSequence++;
-      loadedUserId = null;
-      currentUser = null;
-      currentMember = null;
-      db.movements = [];
-      showAuth();
-      return;
-    }
-    if (session) setTimeout(() => activateSession(session), 0);
-  });
-  const { data, error } = await supabaseClient.auth.getSession();
-  if (error) { showAuth('No se pudo comprobar la sesiÃ³n.', true); return; }
-  if (data.session) await activateSession(data.session);
-  else showAuth();
-}
+HOˆÜ[“[İ™[Y[
+	Ú[™Ü™\ÛÉÊNÂ™Øİ[Y[™Ù][[Y[RY
+	ØYÛÛšX][Û•šY]ÉÊK›Û˜ÛXÚÈH
+
+HOˆÜ[“[İ™[Y[
+	Ú[™Ü™\ÛÉÊNÂ™Øİ[Y[™Ù][[Y[RY
+	ØÛÜÙQX[ÙÉÊK›Û˜ÛXÚÈHÛÜÙQX[ÙÎÂ™Øİ[Y[™Ù][[Y[RY
+	ØØ[˜Ù[X[ÙÉÊK›Û˜ÛXÚÈHÛÜÙQX[ÙÎÂ™Øİ[Y[œ]Y\TÙ[XİÜ[
+	Ë\K[Ü[Û‰ÊK™›Ü‘XXÚ
+]ÛˆOˆ]Û‹›Û˜ÛXÚÈH
+
+HOˆÙ]\J]Û‹™]\Ù]\JJNÂ™Øİ[Y[™Ù][[Y[RY
+	ØØ]YÛÜIÊK˜Y]™[\İ[™\Š	ØÚ[™ÙIË
+
+HOˆ\]TİX˜Ø]YÛÜšY\Ê
+JNÂ™›Ü›K˜Y]™[\İ[™\Š	ÜİX›Z]	ËØ]™S[İ™[Y[
+NÂ™Øİ[Y[™Ù][[Y[RY
+	Ü™]“[Û	ÊK›Û˜ÛXÚÈH
+
+HOˆ[İ™S[Û
+LJNÂ™Øİ[Y[™Ù][[Y[RY
+	Û™^[Û	ÊK›Û˜ÛXÚÈH
+
+HOˆ[İ™S[Û
+JNÂ™Øİ[Y[™Ù][[Y[RY
+	Øİ\œ™[[Û	ÊK›Û˜ÛXÚÈH
+
+HOˆÈÙ[XİYYX\ˆH›İË™Ù][YX\Š
+NÈÙ[XİY[ÛH›İË™Ù][Û
+
+NÈ™[™\Š
+NÈNÂ™Øİ[Y[™Ù][[Y[RY
+	Û[İ™[Y[^IÊKš[›™\’S
+ÏH\œ˜^K™œ›ÛJÈ[™İˆÌHK
+Ë[™^
+HOˆÜ[Ûˆ˜[YOH‰Ú[™^
+È_H‰Ú[™^
+È_OÛÜ[Û˜
+Kš›Ú[Š	ÉÊNÂ™Øİ[Y[™Ù][[Y[RY
+	ØØ]YÛÜQš[\œÉÊKš[›™\’SH]Ûˆ\OH˜]ÛˆˆÛ\ÜÏH˜Ø]YÛÜKYš[\ˆXİ]™Hˆ]KXØ]YÛÜKYš[\H•ÑÔÈˆ\šXK\™\ÜÙYHYH•ÑÔÏØ]Û]Ûˆ\OH˜]ÛˆˆÛ\ÜÏH˜Ø]YÛÜKYš[\ˆˆ]KXØ]YÛÜKYš[\H‘ĞTÕÔÈˆ\šXK\™\ÜÙYH™˜[ÙH‘ĞTÕÔÏØ]Û˜
+ÈØš™XİšÙ^\ÊĞUQÓÔ’QTÊK›X\
+Ø]YÛÜHOˆ]Ûˆ\OH˜]ÛˆˆÛ\ÜÏH˜Ø]YÛÜKYš[\ˆXİ]™Hˆ]KXØ]YÛÜKYš[\H‰Ù\ØØ\R[
+Ø]YÛÜJ_Hˆ\šXK\™\ÜÙYHYH‰Ù\ØØ\R[
+Ø]YÛÜJ_OØ]Û˜
+Kš›Ú[Š	ÉÊNÂ™Øİ[Y[œ]Y\TÙ[XİÜ[
+	ÖÙ]KXØ]YÛÜKYš[\—IÊK™›Ü‘XXÚ
+]ÛˆOˆ]Û‹˜Y]™[\İ[™\Š	ØÛXÚÉË
+
+HOˆÂˆÛÛœİØ]YÛÜHH]Û‹™]\Ù]˜Ø]YÛÜQš[\ÂˆYˆ
+Ø]YÛÜHOOH	ÕÑÔÉÊHÈ[İ™[Y[Ø]YÛÜšY\ÈH[È[İ™[Y[š[\ˆH	İÙÜÉÎÈBˆ[ÙHYˆ
+Ø]YÛÜHOOH	ÑĞTÕÔÉÊHÈ[İ™[Y[Ø]YÛÜšY\ÈH[È[İ™[Y[š[\ˆH	ÙØ\İÉÎÈBˆ[ÙHÂˆYˆ
+[İ™[Y[Ø]YÛÜšY\ÈOOH[
+H[İ™[Y[Ø]YÛÜšY\ÈH™]ÈÙ]
+ØØ]YÛÜWJNÂˆ[ÙHYˆ
+[İ™[Y[Ø]YÛÜšY\Ëš\ÊØ]YÛÜJJH[İ™[Y[Ø]YÛÜšY\Ë™[]JØ]YÛÜJNÂˆ[ÙH[İ™[Y[Ø]YÛÜšY\Ë˜Y
+Ø]YÛÜJNÂˆ[İ™[Y[š[\ˆH	ÙØ\İÉÎÂˆBˆ™[™\Š
+NÂŸJJNÂ™Øİ[Y[™Ù][[Y[RY
+	Û[İ™[Y[^IÊK˜Y]™[\İ[™\Š	ØÚ[™ÙIË
+
+HOˆ™[™\Š
+JNÂ™Øİ[Y[™Ù][[Y[RY
+	Û[İ™[Y[ÛÜ	ÊK˜Y]™[\İ[™\Š	ØÚ[™ÙIË
+
+HOˆ™[™\Š
+JNÂ™[˜İ[Ûˆ[İ™S[Û
+Ù™œÙ]
+HÂˆÛÛœİ™^H™]È]JÙ[XİYYX\‹Ù[XİY[Û
+ÈÙ™œÙ]JNÂˆÙ[XİYYX\ˆH™^™Ù][YX\Š
+NÂˆÙ[XİY[ÛH™^™Ù][Û
+
+NÂˆ™[™\Š
+NÂŸB™Øİ[Y[œ]Y\TÙ[XİÜ[
+	ÖÙ]K]šY]×IÊK™›Ü‘XXÚ
+[[Y[Oˆ[[Y[˜Y]™[\İ[™\Š	ØÛXÚÉË]™[OˆÂˆ]™[œ™]™[Y˜][
+
+NÂˆÙ]šY]Ê[[Y[™]\Ù]šY]ÊNÂŸJJNÂ™Øİ[Y[™Ù][[Y[RY
+	Ùš^Y[ÛS\İ	ÊK˜Y]™[\İ[™\Š	ØÛXÚÉË]™[OˆÂˆÛÛœİ]ÛˆH]™[\™Ù]˜ÛÜÙ\İ
+	ÖÙ]KYš^YX\WIÊNÂˆYˆ
+]ÛŠH\Qš^Y[ÛJ]ÛŠNÂŸJNÂ™Øİ[Y[™Ù][[Y[RY
+	Û[İ™[Y[ÙX\˜Ú	ÊK˜Y]™[\İ[™\Š	Ú[œ]	Ë
+
+HOˆ™[™\Š
+JNÂ‚˜ÛY[]™[\İ[™\Š
+NÂ˜\Ş[˜È[˜İ[ÛˆÛY[]™[\İ[™\Š
+HÂˆYˆ
+T×ÓĞĞSÑ’SJHÂˆØYØØ[]J
+NÂˆİ\œ™[Y[X™\ˆHÈ›Ûˆ	ØYZ[‰ËÙØ\—ÚYˆÕTÑRÓÒQNÂˆİ\œ™[\Ù\ˆHÈYˆ	ÛØØ[[Û›IÈNÂˆØİ[Y[œ]Y\TÙ[XİÜŠ	Ëœ›Ùš[KX]Ûˆİ›Û™ÉÊK^ÛÛ[H	Ó[ÙÈØØ[	ÎÂˆØİ[Y[œ]Y\TÙ[XİÜŠ	Ëœ›Ùš[KX]ÛˆÛX[	ÊK^ÛÛ[H	ÔÛÛÈ\İH˜]™YØYÜ‰ÎÂˆØİ[Y[œ]Y\TÙ[XİÜŠ	Ëœ›Ùš[KX]Ûˆ˜]˜]\‰ÊK^ÛÛ[H	Ó	ÎÂˆØİ[Y[™Ù][[Y[RY
+	ÜŞ[˜Ôİ]\Õ^	ÊK^ÛÛ[H	ÑİX\™YÈ[ˆ\İH˜]™YØYÜ‰ÎÂˆØİ[Y[™Ù][[Y[RY
+	ÜÚYÛ“İ]	ÊKšY[ˆHYNÂˆÙ]Üš]PXØÙ\ÜÊYJNÂˆ]]Ø]KšY[ˆHYNÂˆ\Ú[šY[ˆH˜[ÙNÂˆ™[™\Š
+NÂˆ™]\›ÂˆBˆYˆ
+\İ\X˜\ÙPÛY[
+HÂˆÚİĞ]]
+	Ñ˜[HHÛÛ™šYİ\˜XÚpìÛˆ0î˜›XØHHİ\X˜\ÙK‰ËYJNÂˆ™]\›ÂˆBˆİ\X˜\ÙPÛY[˜]]›Û]]İ]PÚ[™ÙJ
+]™[Ù\ÜÚ[ÛŠHOˆÂˆYˆ
+]™[OOH	ÔÒQÓ‘QÓÕU	ÊHÂˆÙ\ÜÚ[Û“ØYÙ\]Y[˜ÙJÊÎÂˆØYY\Ù\’YH[Âˆİ\œ™[\Ù\ˆH[Âˆİ\œ™[Y[X™\ˆH[Âˆ‹›[İ™[Y[ÈH×NÂˆÚİĞ]]
+
+NÂˆ™]\›ÂˆBˆYˆ
+Ù\ÜÚ[ÛŠHÙ][Y[İ]
+
+
+HOˆXİ]˜]TÙ\ÜÚ[ÛŠÙ\ÜÚ[ÛŠK
+NÂˆJNÂˆÛÛœİÈ]K\œ›ÜˆHH]ØZ]İ\X˜\ÙPÛY[˜]]™Ù]Ù\ÜÚ[ÛŠ
+NÂˆYˆ
+\œ›ÜŠHÈÚİĞ]]
+	Ó›ÈÙHYÈÛÛ\›Ø˜\ˆHÙ\ÚpìÛ‹‰ËYJNÈ™]\›ÈBˆYˆ
+]KœÙ\ÜÚ[ÛŠH]ØZ]Xİ]˜]TÙ\ÜÚ[ÛŠ]KœÙ\ÜÚ[ÛŠNÂˆ[ÙHÚİĞ]]
+
+NÂŸB
