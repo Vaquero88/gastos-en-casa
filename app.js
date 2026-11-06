@@ -10,8 +10,10 @@ const CATEGORIES = {
   Otros: ['Otros'],
 };
 const HOUSEHOLD_ID = 'f8578860-5cab-48bf-8643-6c6ca874036c';
+const IS_LOCAL_FILE = window.location.protocol === 'file:';
+const LOCAL_STORAGE_KEY = 'casa-en-comun-local-v1';
 const now = new Date();
-const supabaseClient = window.supabase?.createClient(
+const supabaseClient = !IS_LOCAL_FILE && window.supabase?.createClient(
   window.CASA_SUPABASE_URL,
   window.CASA_SUPABASE_PUBLISHABLE_KEY,
 );
@@ -63,6 +65,24 @@ function showAuth(message = '', isError = false) {
   appShell.hidden = true;
   authMessage.textContent = message;
   authMessage.classList.toggle('error', isError);
+}
+function loadLocalData() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || 'null');
+    if (saved && typeof saved === 'object' && Array.isArray(saved.movements)) {
+      db = { ...db, ...saved };
+    }
+  } catch (error) {
+    console.warn('No se pudieron leer los movimientos guardados en este navegador.', error);
+  }
+}
+function saveLocalData() {
+  try {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(db));
+  } catch (error) {
+    toast('No se pudo guardar en este navegador.', true);
+    console.error('Error al guardar en modo local:', error);
+  }
 }
 function mapFromDatabase(row) {
   return {
@@ -424,6 +444,23 @@ async function saveMovement(event) {
     creado_por: currentUser.id,
   };
   if (!date || !periodYear || !periodMonth || !movement.descripcion) return;
+  if (IS_LOCAL_FILE) {
+    const localMovement = {
+      id: editingId || (crypto.randomUUID ? crypto.randomUUID() : `local-${Date.now()}-${Math.random().toString(16).slice(2)}`),
+      date, periodYear, periodMonth, description: movement.descripcion, type,
+      category: movement.categoria, subcategory: movement.subcategoria,
+      person: movement.persona, amount, notes: movement.notas, createdAt: Date.now(),
+    };
+    if (editingId) db.movements = db.movements.map(item => item.id === editingId ? localMovement : item);
+    else db.movements.push(localMovement);
+    saveLocalData();
+    selectedYear = periodYear;
+    selectedMonth = periodMonth - 1;
+    closeDialog();
+    render();
+    toast('Guardado solo en este navegador');
+    return;
+  }
   try {
     const response = editingId
       ? await supabaseClient.from('casa_movimientos').update(movement).eq('id', editingId).eq('hogar_id', currentMember.hogar_id)
@@ -442,6 +479,13 @@ async function saveMovement(event) {
 async function archiveMovement(id) {
   const movement = db.movements.find(item => item.id === id);
   if (!movement || currentMember?.rol !== 'admin' || !confirm(`¿Archivar «${movement.description}»?`)) return;
+  if (IS_LOCAL_FILE) {
+    db.movements = db.movements.filter(item => item.id !== id);
+    saveLocalData();
+    render();
+    toast('Movimiento quitado de este navegador');
+    return;
+  }
   const { error } = await supabaseClient.from('casa_movimientos').update({ archivado: true }).eq('id', id).eq('hogar_id', currentMember.hogar_id);
   if (error) { toast('No se pudo archivar el movimiento.', true); return; }
   await refreshMovements();
@@ -521,6 +565,21 @@ document.getElementById('movementSearch').addEventListener('input', () => render
 
 clientEventListener();
 async function clientEventListener() {
+  if (IS_LOCAL_FILE) {
+    loadLocalData();
+    currentMember = { rol: 'admin', hogar_id: HOUSEHOLD_ID };
+    currentUser = { id: 'local-only' };
+    document.querySelector('.profile-button strong').textContent = 'Modo local';
+    document.querySelector('.profile-button small').textContent = 'Solo este navegador';
+    document.querySelector('.profile-button .avatar').textContent = 'L';
+    document.getElementById('syncStatusText').textContent = 'Guardado en este navegador';
+    document.getElementById('signOut').hidden = true;
+    setWriteAccess(true);
+    authGate.hidden = true;
+    appShell.hidden = false;
+    render();
+    return;
+  }
   if (!supabaseClient) {
     showAuth('Falta la configuración pública de Supabase.', true);
     return;
