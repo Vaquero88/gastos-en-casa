@@ -39,8 +39,10 @@ function euro(value) {
 function monthName(month = selectedMonth) { return MONTHS[month]; }
 function monthKey(year, month) { return year * 12 + month; }
 function dateForInput() {
-  const day = Math.min(now.getDate(), new Date(selectedYear, selectedMonth + 1, 0).getDate());
-  return `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 function escapeHtml(value = '') {
   return String(value).replace(/[&<>"']/g, char => ({
@@ -315,6 +317,10 @@ async function openMovement(type = 'gasto', item = null) {
   if (currentMember?.rol !== 'admin') return;
   editingId = item?.id || null;
   form.reset();
+  const period = document.getElementById('periodMonth');
+  const periodYear = item?.periodYear ?? selectedYear;
+  const periodMonth = item?.periodMonth ?? selectedMonth + 1;
+  period.value = `${periodYear}-${String(periodMonth).padStart(2, '0')}`;
   document.getElementById('date').value = item?.date || dateForInput();
   const category = document.getElementById('category');
   category.innerHTML = Object.keys(CATEGORIES).map(name => `<option>${escapeHtml(name)}</option>`).join('');
@@ -357,11 +363,13 @@ async function saveMovement(event) {
   const amount = Number(document.getElementById('amount').value);
   if (!Number.isFinite(amount) || amount === 0 || (type === 'ingreso' && amount < 0)) return;
   const date = document.getElementById('date').value;
+  const periodValue = document.getElementById('periodMonth').value;
+  const [periodYear, periodMonth] = periodValue.split('-').map(Number);
   const movement = {
     hogar_id: currentMember.hogar_id,
     fecha: date,
-    periodo_anio: selectedYear,
-    periodo_mes: selectedMonth + 1,
+    periodo_anio: periodYear,
+    periodo_mes: periodMonth,
     descripcion: document.getElementById('description').value.trim(),
     tipo: type,
     categoria: type === 'ingreso' ? 'Aportación' : document.getElementById('category').value,
@@ -371,12 +379,14 @@ async function saveMovement(event) {
     notas: document.getElementById('notes').value.trim(),
     creado_por: currentUser.id,
   };
-  if (!date || !movement.descripcion) return;
+  if (!date || !periodYear || !periodMonth || !movement.descripcion) return;
   try {
     const response = editingId
       ? await supabaseClient.from('casa_movimientos').update(movement).eq('id', editingId).eq('hogar_id', currentMember.hogar_id)
       : await supabaseClient.from('casa_movimientos').insert(movement);
     if (response.error) throw response.error;
+    selectedYear = periodYear;
+    selectedMonth = periodMonth - 1;
     closeDialog();
     await refreshMovements();
     toast(editingId ? 'Movimiento actualizado' : 'Movimiento guardado');
