@@ -45,9 +45,9 @@
       <header class="topbar"><div class="crumb">Vuestro hogar <span>/</span> <b id="breadcrumb">Resumen</b></div><div class="top-actions"><span class="sync-status"><i></i> <span id="syncStatusText">Conectado a Supabase</span></span><button class="icon-button" id="signOut" aria-label="Cerrar sesión" title="Cerrar sesión">↪</button></div></header>
       <section class="page-heading">
         <div><p class="eyebrow" id="todayLabel">VUESTRO DINERO, EN ORDEN</p><h1 id="pageTitle">Resumen</h1><p class="heading-subtitle" id="pageSubtitle">Todo lo que entra y sale de vuestra cuenta común.</p></div>
-        <div class="heading-actions"><div class="month-select"><button id="prevMonth" aria-label="Mes anterior">‹</button><span id="monthLabel">Noviembre 2026</span><button id="nextMonth" aria-label="Mes siguiente">›</button></div><button class="primary-button" id="addMovement"><span>＋</span> Añadir movimiento</button></div>
+        <div class="heading-actions"><div class="month-select"><button id="prevMonth" aria-label="Mes anterior">‹</button><span id="monthLabel">Noviembre 2026</span><button id="nextMonth" aria-label="Mes siguiente">›</button><button class="current-month-quick" id="currentMonth" aria-label="Volver al mes actual" title="Volver al mes actual">Hoy</button></div><button class="primary-button" id="addMovement"><span>＋</span> Añadir movimiento</button></div>
       </section>
-      <div class="period-notice"><span class="notice-dot"></span><span>Estás viendo <b id="periodText">noviembre de 2026</b></span><button id="currentMonth">Ir a este mes</button></div>
+      <div class="period-notice"><span class="notice-dot"></span><span>Estás viendo <b id="periodText">noviembre de 2026</b></span></div>
 
       <div id="dashboardView">
       <section class="summary-grid" aria-label="Resumen del mes">
@@ -76,7 +76,7 @@
         <section id="movimientosView" class="secondary-page" hidden>
           <article class="panel secondary-panel">
             <div class="panel-heading"><div><h2>Todos los movimientos</h2><p>El registro completo de este mes.</p></div><span class="view-count" id="movementViewCount">0 movimientos</span></div>
-            <div class="view-toolbar"><div class="filter-tabs"><button class="filter-tab active" data-movement-filter="todos">Todos</button><button class="filter-tab" data-movement-filter="ingreso">Ingresos</button><button class="filter-tab" data-movement-filter="gasto">Gastos</button></div><label class="search-box"><span>⌕</span><input id="movementSearch" placeholder="Buscar movimiento" type="search"></label></div>
+            <div class="view-toolbar"><div class="movement-controls"><div class="movement-primary-filters"><div class="filter-tabs"><button class="filter-tab active" data-movement-filter="todos">Todos</button><button class="filter-tab" data-movement-filter="ingreso">Ingresos</button><button class="filter-tab" data-movement-filter="gasto">Gastos</button></div><label class="movement-select-label">Día<select id="movementDay"><option value="">Cualquier día</option></select></label><label class="movement-select-label">Orden<select id="movementSort"><option value="newest">Más recientes</option><option value="oldest">Más antiguos</option></select></label></div><div class="category-filters-wrap"><span class="category-filter-caption">Categorías</span><div class="category-filters" id="categoryFilters" aria-label="Filtrar por categorías"></div></div></div><label class="search-box"><span>⌕</span><input id="movementSearch" placeholder="Buscar movimiento" type="search"></label></div>
             <div class="transaction-list full-transaction-list" id="allTransactionList"></div>
             <div class="empty-state" id="emptyMovementView"><span class="empty-illustration">↕</span><strong>No hay movimientos este mes</strong><p>Al añadir ingresos y gastos, aparecerán aquí.</p></div>
           </article>
