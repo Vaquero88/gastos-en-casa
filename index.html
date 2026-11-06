@@ -34,6 +34,7 @@
         <a class="nav-link active" href="#inicio" data-view="inicio"><span class="nav-icon">⌂</span>Resumen</a>
         <a class="nav-link" href="#movimientos" data-view="movimientos"><span class="nav-icon">↕</span>Movimientos</a>
         <a class="nav-link" href="#aportaciones" data-view="aportaciones"><span class="nav-icon">◉</span>Aportaciones</a>
+        <a class="nav-link" href="#fijos" data-view="fijos"><span class="nav-icon">✓</span>Fijos mensuales</a>
         <a class="nav-link" href="#categorias" data-view="categorias"><span class="nav-icon">▦</span>Categorías</a>
       </nav>
       <div class="sidebar-bottom">
@@ -86,6 +87,14 @@
           <div class="contribution-summary-grid" id="contributionSummaryGrid"></div>
           <article class="panel secondary-panel"><div class="panel-heading"><div><h2>Detalle de aportaciones</h2><p>Ingresos registrados en la cuenta común durante este mes.</p></div><button class="round-action" id="addContributionView" title="Añadir aportación">＋</button></div><div class="transaction-list" id="contributionHistory"></div><div class="empty-category" id="emptyContributionView">Todavía no hay aportaciones registradas este mes.</div></article>
         </section>
+        <section id="fijosView" class="secondary-page" hidden>
+          <article class="panel secondary-panel fixed-monthly-panel">
+            <div class="panel-heading"><div><h2>Fijos de <span id="fixedMonthLabel">este mes</span></h2><p>El mes al que pertenecen ya está seleccionado arriba. Ajusta la fecha, descripción o importe y pulsa ✓ para añadir cada movimiento.</p></div><span class="view-count" id="fixedMonthlyCount">0 movimientos</span></div>
+            <div class="fixed-monthly-summary" id="fixedMonthlySummary"></div>
+            <div class="fixed-monthly-list" id="fixedMonthlyList"></div>
+            <div class="empty-category" id="emptyFixedMonthly">No hay fijos programados para este mes.</div>
+          </article>
+        </section>
         <section id="categoriasView" class="secondary-page" hidden>
           <article class="panel secondary-panel"><div class="panel-heading"><div><h2>Gastos por categoría</h2><p>Totales de <span class="selected-month-inline"></span> y sus subcategorías.</p></div></div><div id="categoryDetailList" class="category-detail-list"></div><div class="empty-category" id="emptyCategoryView">Todavía no hay gastos registrados este mes.</div></article>
         </section>
@@ -98,4 +107,3 @@
   <script src="app.js"></script>
 </body>
 </html>
-

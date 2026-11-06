@@ -43,6 +43,7 @@ create table if not exists public.casa_movimientos (
   importe numeric(12,2) not null check (importe <> 0),
   notas text not null default '',
   clave_importacion text,
+  plantilla_fijo_id text,
   creado_por uuid references auth.users(id) on delete set null,
   archivado boolean not null default false,
   created_at timestamptz not null default now(),
@@ -51,6 +52,10 @@ create table if not exists public.casa_movimientos (
 
 create index if not exists casa_movimientos_periodo_idx
   on public.casa_movimientos (hogar_id, periodo_anio, periodo_mes, fecha desc);
+
+create unique index if not exists casa_movimientos_fixed_template_unique
+  on public.casa_movimientos (hogar_id, plantilla_fijo_id, periodo_anio, periodo_mes)
+  where plantilla_fijo_id is not null and archivado = false;
 
 create or replace function public.casa_hogar_actual()
 returns uuid
@@ -153,5 +158,4 @@ revoke all on function public.casa_hogar_actual() from public, anon;
 revoke all on function public.casa_es_admin() from public, anon;
 grant execute on function public.casa_hogar_actual() to authenticated;
 grant execute on function public.casa_es_admin() to authenticated;
-
 

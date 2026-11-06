@@ -47,6 +47,39 @@ function dateForInput() {
   const day = String(now.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
+function fixedMonthlyTemplates(year = selectedYear, month = selectedMonth) {
+  const previous = new Date(year, month - 1, 1);
+  const previousName = MONTHS[previous.getMonth()];
+  const previousYearShort = String(previous.getFullYear()).slice(-2);
+  const monthOffset = (year - 2026) * 12 + (month - 10);
+  const huchaCount = 30 + monthOffset;
+  const conchiCount = 68 + monthOffset;
+  const mortgageCount = 68 + monthOffset;
+  const items = [
+    { id: 'aportacion-tito', description: 'Aportación mensual 1', type: 'ingreso', category: 'Ingresos', subcategory: 'Tito', person: 'Tito', amount: 800 },
+    { id: 'aportacion-sheila', description: 'Aportación mensual 1 (750+50 ahorro)', type: 'ingreso', category: 'Ingresos', subcategory: 'Sheila', person: 'Sheila', amount: 800 },
+    { id: 'comunidad', description: 'Comunidad', type: 'gasto', category: 'Fijos', subcategory: 'Comunidad', amount: 97.60 },
+    { id: 'ahorros-hucha', description: `Ahorros Hucha ${huchaCount}`, type: 'gasto', category: 'Fijos', subcategory: 'Ahorros Hucha', amount: 50 },
+  ];
+  if (conchiCount >= 1 && conchiCount <= 134) items.push({ id: 'prestamo-conchi', description: `Préstamo Conchi ${String(conchiCount).padStart(3, '0')} de 134`, type: 'gasto', category: 'Fijos', subcategory: 'Préstamo Conchi', amount: 300 });
+  if (mortgageCount >= 1 && mortgageCount <= 360) items.push({ id: 'hipoteca', description: `Hipoteca ${String(mortgageCount).padStart(3, '0')} de 360`, type: 'gasto', category: 'Fijos', subcategory: 'Hipoteca', amount: 536.31 });
+  items.push(
+    { id: 'vodafone-lowi', description: `Vodafone (Lowi) - ${previousName} ${previousYearShort}`, type: 'gasto', category: 'Fijos', subcategory: 'Comunicaciones', amount: 28 },
+    { id: 'luz-total-energy', description: `Luz TotalEnergy ${previousName} ${previousYearShort}`, type: 'gasto', category: 'Fijos', subcategory: 'Electricidad', amount: null },
+    { id: 'luz-coche', description: `Luz coche ${previousName} ${previousYearShort}`, type: 'gasto', category: 'Fijos', subcategory: 'Electricidad', amount: -30 },
+  );
+  if ([1, 3, 5, 7, 9, 11].includes(month)) {
+    items.push({ id: 'redexis-glp', description: `Redexis GLP - ${previousName} y ${MONTHS[month]}`, type: 'gasto', category: 'Fijos', subcategory: 'Gas', amount: null });
+  }
+  if (month >= 2 && month <= 10) {
+    const installment = month - 1;
+    items.push({ id: 'ibi-basura', description: `IBI y basura ${installment}/9`, type: 'gasto', category: 'Fijos', subcategory: 'IBI y basura', amount: 67.61 });
+  }
+  return items;
+}
+function normalizeFixedDescription(value = '') {
+  return String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
 function escapeHtml(value = '') {
   return String(value).replace(/[&<>"']/g, char => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -97,6 +130,7 @@ function mapFromDatabase(row) {
     person: row.persona,
     amount: Number(row.importe),
     notes: row.notas || '',
+    fixedTemplateId: row.plantilla_fijo_id || null,
     createdAt: Date.parse(row.created_at || row.fecha),
   };
 }
@@ -354,12 +388,103 @@ function renderSecondaryViews(result) {
     <b>${euro(data.total)}</b></div><div class="subcategory-breakdown">${Object.entries(data.subs).sort((a, b) => b[1] - a[1]).map(([subcategory, amount]) => `
       <div><span>${escapeHtml(subcategory)}</span><strong>${euro(amount)}</strong></div>`).join('')}</div></article>`).join('');
   document.getElementById('emptyCategoryView').classList.toggle('show', !groupList.length);
+  renderFixedMonthly();
+}
+
+function renderFixedMonthly() {
+  const templates = fixedMonthlyTemplates();
+  const host = document.getElementById('fixedMonthlyList');
+  if (!host) return;
+  document.getElementById('fixedMonthLabel').textContent = `${monthName()} ${selectedYear}`;
+  const rows = templates.map(template => {
+    const applied = db.movements.find(item => forCurrentPeriod(item) && (
+      item.fixedTemplateId === template.id || (!item.fixedTemplateId
+        && normalizeFixedDescription(item.description) === normalizeFixedDescription(template.description)
+        && item.type === template.type && item.category === template.category
+        && item.subcategory === template.subcategory && (item.person || '') === (template.person || '')
+        && (template.amount == null || Math.abs(item.amount) === Math.abs(template.amount)))
+    ));
+    const alreadyApplied = Boolean(applied);
+    const details = template.type === 'ingreso'
+      ? `Ingreso · ${template.person}`
+      : `Gasto · ${template.category} · ${template.subcategory}`;
+    return `<article class="fixed-monthly-row ${alreadyApplied ? 'is-applied' : ''}" data-fixed-id="${template.id}">
+      <div class="fixed-monthly-details"><strong>${escapeHtml(details)}</strong><small>${alreadyApplied ? 'Ya está en movimientos de este mes' : 'Fecha del movimiento · pertenece a ' + monthName().toLowerCase()}</small></div>
+      <div class="fixed-monthly-fields">
+        <label>Descripción<input data-fixed-description value="${escapeHtml(template.description)}" maxlength="100" ${alreadyApplied ? 'disabled' : ''}></label>
+        <label>Importe<input data-fixed-amount type="number" step="0.01" value="${template.amount ?? ''}" placeholder="Indica el importe" ${alreadyApplied ? 'disabled' : ''}></label>
+        <label>Fecha<input data-fixed-date type="date" required ${alreadyApplied ? 'disabled' : ''}></label>
+      </div>
+      ${alreadyApplied ? '<span class="fixed-monthly-applied">✓ Aplicado</span>' : '<button class="fixed-monthly-apply" type="button" data-fixed-apply aria-label="Añadir movimiento">✓</button>'}
+    </article>`;
+  });
+  host.innerHTML = rows.join('');
+  const appliedCount = host.querySelectorAll('.is-applied').length;
+  document.getElementById('fixedMonthlyCount').textContent = `${appliedCount} de ${templates.length} aplicados`;
+  document.getElementById('fixedMonthlySummary').textContent = currentMember?.rol === 'admin'
+    ? 'Completa la fecha real y confirma con ✓. Puedes retocar la descripción y el importe antes de añadirlo.'
+    : 'Consulta los movimientos fijos previstos y cuáles ya se han añadido.';
+  document.getElementById('emptyFixedMonthly').classList.toggle('show', templates.length === 0);
+}
+
+async function applyFixedMonthly(button) {
+  if (currentMember?.rol !== 'admin') return;
+  const row = button.closest('[data-fixed-id]');
+  const template = fixedMonthlyTemplates().find(item => item.id === row?.dataset.fixedId);
+  if (!template) return;
+  const date = row.querySelector('[data-fixed-date]').value;
+  const description = row.querySelector('[data-fixed-description]').value.trim();
+  const rawAmount = row.querySelector('[data-fixed-amount]').value;
+  const amount = Number(rawAmount);
+  if (!date) { toast('Indica la fecha del movimiento.', true); return; }
+  if (!description) { toast('Escribe una descripción.', true); return; }
+  if (rawAmount === '' || !Number.isFinite(amount) || amount === 0 || (template.type === 'ingreso' && amount < 0)) {
+    toast('Indica un importe válido.', true); return;
+  }
+  const movement = {
+    hogar_id: currentMember.hogar_id,
+    fecha: date,
+    periodo_anio: selectedYear,
+    periodo_mes: selectedMonth + 1,
+    descripcion: description,
+    tipo: template.type,
+    categoria: template.category,
+    subcategoria: template.subcategory,
+    persona: template.person || null,
+    importe: amount,
+    notas: '',
+    creado_por: currentUser?.id || null,
+    plantilla_fijo_id: template.id,
+  };
+  try {
+    if (IS_LOCAL_FILE) {
+      db.movements.push({ id: crypto.randomUUID(), date, periodYear: selectedYear, periodMonth: selectedMonth + 1,
+        description, type: template.type, category: template.category, subcategory: template.subcategory,
+        person: template.person || null, amount, notes: '', fixedTemplateId: template.id, createdAt: Date.now() });
+      saveLocalData();
+    } else {
+      const { error } = await supabaseClient.from('casa_movimientos').insert(movement);
+      if (error) throw error;
+      await refreshMovements();
+    }
+    render();
+    toast('Movimiento fijo añadido');
+  } catch (error) {
+    if (error.code === '23505') {
+      await refreshMovements();
+      toast('Este fijo ya estaba añadido para el mes.', true);
+    } else {
+      console.error('No se pudo aplicar el fijo:', error);
+      toast('No se pudo añadir el movimiento fijo.', true);
+    }
+  }
 }
 
 const VIEW_META = {
   inicio: { title: 'Resumen', subtitle: 'Todo lo que entra y sale de vuestra cuenta común.' },
   movimientos: { title: 'Movimientos', subtitle: 'Consulta y busca los ingresos y gastos del mes.' },
   aportaciones: { title: 'Aportaciones', subtitle: 'Lo que Tito y Sheila ingresan en la cuenta común.' },
+  fijos: { title: 'Fijos mensuales', subtitle: 'Movimientos previstos para cada mes.' },
   categorias: { title: 'Categorías', subtitle: 'Descubre en qué se distribuyen los gastos del mes.' },
 };
 function setView(view) {
@@ -566,6 +691,10 @@ document.querySelectorAll('[data-view]').forEach(element => element.addEventList
   event.preventDefault();
   setView(element.dataset.view);
 }));
+document.getElementById('fixedMonthlyList').addEventListener('click', event => {
+  const button = event.target.closest('[data-fixed-apply]');
+  if (button) applyFixedMonthly(button);
+});
 document.getElementById('movementSearch').addEventListener('input', () => render());
 
 clientEventListener();
@@ -606,4 +735,3 @@ async function clientEventListener() {
   if (data.session) await activateSession(data.session);
   else showAuth();
 }
-
