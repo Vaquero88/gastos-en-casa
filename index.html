@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f7f3">
+  <title>Casa en común · Gastos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="theme.css">
+</head>
+<body>
+  <section class="auth-gate" id="authGate">
+    <div class="auth-card">
+      <span class="brand-mark auth-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3.5 11 8.5-7 8.5 7v9a.8.8 0 0 1-.8.8h-5.1v-6.2H9.4v6.2H4.3a.8.8 0 0 1-.8-.8z"/><path d="M8 7.4V4.8h3"/></svg></span>
+      <p class="dialog-kicker">CASA EN COMÚN</p><h1>Vuestras cuentas,<br>solo para vosotros.</h1>
+      <p class="auth-description">Entra con tu correo y te enviaremos un enlace privado para abrir la cuenta familiar.</p>
+      <form id="authForm"><label for="authEmail">Correo electrónico</label><input id="authEmail" type="email" autocomplete="email" placeholder="nombre@correo.com" required><button id="sendMagicLink" class="primary-button" type="submit">Enviar enlace de acceso <span>→</span></button></form>
+      <p class="auth-message" id="authMessage" aria-live="polite"></p><p class="auth-footnote">Los datos de ingresos y gastos solo se muestran a los miembros autorizados.</p>
+    </div>
+  </section>
+  <div class="app-shell" id="appShell" hidden>
+    <aside class="sidebar">
+      <a class="brand" href="#inicio" data-view="inicio" aria-label="Casa en común, inicio">
+        <span class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3.5 11 8.5-7 8.5 7v9a.8.8 0 0 1-.8.8h-5.1v-6.2H9.4v6.2H4.3a.8.8 0 0 1-.8-.8z"/><path d="M8 7.4V4.8h3"/></svg></span>
+        <span><strong>Casa en común</strong><small>CUENTAS CLARAS, CASA TRANQUILA</small></span>
+      </a>
+      <div class="house-label">VUESTRO HOGAR <span>⌄</span></div>
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a class="nav-link active" href="#inicio" data-view="inicio"><span class="nav-icon">⌂</span>Resumen</a>
+        <a class="nav-link" href="#movimientos" data-view="movimientos"><span class="nav-icon">↕</span>Movimientos</a>
+        <a class="nav-link" href="#aportaciones" data-view="aportaciones"><span class="nav-icon">◉</span>Aportaciones</a>
+        <a class="nav-link" href="#categorias" data-view="categorias"><span class="nav-icon">▦</span>Categorías</a>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="month-card"><span class="month-card-icon">✦</span><div><strong>Un mes a la vez</strong><p>Los gastos se organizan por mes y categoría, como en vuestro Excel.</p></div></div>
+        <button class="profile-button" id="profileButton"><span class="avatar avatar-tito">T</span><span><strong>Tito</strong><small>Administrador</small></span><span class="more">···</span></button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar"><div class="crumb">Vuestro hogar <span>/</span> <b id="breadcrumb">Resumen</b></div><div class="top-actions"><span class="sync-status"><i></i> <span id="syncStatusText">Conectado a Supabase</span></span><button class="icon-button" id="signOut" aria-label="Cerrar sesión" title="Cerrar sesión">↪</button></div></header>
+      <section class="page-heading">
+        <div><p class="eyebrow" id="todayLabel">VUESTRO DINERO, EN ORDEN</p><h1 id="pageTitle">Resumen</h1><p class="heading-subtitle" id="pageSubtitle">Todo lo que entra y sale de vuestra cuenta común.</p></div>
+        <div class="heading-actions"><div class="month-select"><button id="prevMonth" aria-label="Mes anterior">‹</button><span id="monthLabel">Noviembre 2026</span><button id="nextMonth" aria-label="Mes siguiente">›</button></div><button class="primary-button" id="addMovement"><span>＋</span> Añadir movimiento</button></div>
+      </section>
+      <div class="period-notice"><span class="notice-dot"></span><span>Estás viendo <b id="periodText">noviembre de 2026</b></span><button id="currentMonth">Ir a este mes</button></div>
+
+      <div id="dashboardView">
+      <section class="summary-grid" aria-label="Resumen del mes">
+        <article class="metric-card balance-card"><div class="metric-head"><span>Saldo de la cuenta</span><span class="metric-icon purple">◉</span></div><div class="metric-value" id="balanceValue">0,00&nbsp;€</div><div class="metric-foot"><span class="status-dot"></span><span id="balanceCaption">Saldo inicial: 0,00 €</span></div><div class="balance-orbit orbit-one"></div><div class="balance-orbit orbit-two"></div></article>
+        <article class="metric-card"><div class="metric-head"><span>Ingresos del mes</span><span class="metric-icon green">↗</span></div><div class="metric-value" id="incomeValue">0,00&nbsp;€</div><div class="metric-foot"><span class="delta-label positive">Aportaciones</span><span id="incomeCaption">de Tito y Sheila</span></div><div class="mini-bars" id="incomeBars" aria-hidden="true"></div></article>
+        <article class="metric-card"><div class="metric-head"><span>Gastos del mes</span><span class="metric-icon coral">↘</span></div><div class="metric-value" id="expenseValue">0,00&nbsp;€</div><div class="metric-foot"><span class="delta-label neutral" id="expenseCount">0 movimientos</span><span>registrados</span></div><div class="mini-bars expense-bars" id="expenseBars" aria-hidden="true"></div></article>
+        <article class="metric-card"><div class="metric-head"><span>Neto del mes</span><span class="metric-icon yellow">↗</span></div><div class="metric-value" id="netValue">0,00&nbsp;€</div><div class="metric-foot"><span class="delta-label neutral">Ingresos menos gastos</span></div><div class="net-decoration">≈</div></article>
+      </section>
+
+      <section class="content-grid">
+        <article class="panel transactions-panel" id="transactionsPanel"><div class="panel-heading"><div><h2>Últimos movimientos</h2><p>Los movimientos de vuestra cuenta común.</p></div><button class="text-button" data-view="movimientos">Ver todos <span>→</span></button></div><div class="transaction-list" id="transactionList"></div><div class="empty-state" id="emptyTransactions"><span class="empty-illustration">✳</span><strong>Todo empieza con un movimiento</strong><p>Añade una aportación o un gasto para empezar a ver vuestro mes.</p><button class="secondary-button" id="emptyAdd">＋ Añadir el primero</button></div></article>
+        <article class="panel contribution-panel"><div class="panel-heading"><div><h2>Aportaciones</h2><p>Lo que cada uno ha ingresado este mes.</p></div><button class="round-action" id="addContribution" title="Añadir aportación">＋</button></div><div class="contribution-total"><span>Total aportado</span><strong id="contributionTotal">0,00 €</strong></div><div class="people-list" id="peopleList"></div><div class="contribution-note"><span>↗</span><p>El saldo suma el saldo inicial más todos los ingresos y gastos registrados.</p></div></article>
+      </section>
+      <section class="panel category-panel"><div class="panel-heading"><div><h2>En qué se va el dinero</h2><p>Gasto del mes por categoría.</p></div><button class="text-button" data-view="categorias">Ver categorías <span>→</span></button></div><div id="categoryOverview" class="category-overview"></div><div id="emptyCategories" class="empty-category">Cuando añadáis gastos, aquí veréis el reparto por categorías.</div></section>
+      <footer class="page-footer"><span>Hecho para llevar las cuentas entre dos.</span><span>Los movimientos se sincronizan con la cuenta familiar.</span></footer>
+      </div>
+
+      <div id="secondaryView" hidden>
+        <section id="movimientosView" class="secondary-page" hidden>
+          <article class="panel secondary-panel">
+            <div class="panel-heading"><div><h2>Todos los movimientos</h2><p>El registro completo de este mes.</p></div><span class="view-count" id="movementViewCount">0 movimientos</span></div>
+            <div class="view-toolbar"><div class="filter-tabs"><button class="filter-tab active" data-movement-filter="todos">Todos</button><button class="filter-tab" data-movement-filter="ingreso">Ingresos</button><button class="filter-tab" data-movement-filter="gasto">Gastos</button></div><label class="search-box"><span>⌕</span><input id="movementSearch" placeholder="Buscar movimiento" type="search"></label></div>
+            <div class="transaction-list full-transaction-list" id="allTransactionList"></div>
+            <div class="empty-state" id="emptyMovementView"><span class="empty-illustration">↕</span><strong>No hay movimientos este mes</strong><p>Al añadir ingresos y gastos, aparecerán aquí.</p></div>
+          </article>
+        </section>
+        <section id="aportacionesView" class="secondary-page" hidden>
+          <div class="contribution-summary-grid" id="contributionSummaryGrid"></div>
+          <article class="panel secondary-panel"><div class="panel-heading"><div><h2>Detalle de aportaciones</h2><p>Ingresos registrados en la cuenta común durante este mes.</p></div><button class="round-action" id="addContributionView" title="Añadir aportación">＋</button></div><div class="transaction-list" id="contributionHistory"></div><div class="empty-category" id="emptyContributionView">Todavía no hay aportaciones registradas este mes.</div></article>
+        </section>
+        <section id="categoriasView" class="secondary-page" hidden>
+          <article class="panel secondary-panel"><div class="panel-heading"><div><h2>Gastos por categoría</h2><p>Totales de <span class="selected-month-inline"></span> y sus subcategorías.</p></div></div><div id="categoryDetailList" class="category-detail-list"></div><div class="empty-category" id="emptyCategoryView">Todavía no hay gastos registrados este mes.</div></article>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <dialog id="movementDialog" class="movement-dialog"><form id="movementForm" method="dialog"><div class="dialog-header"><div><span class="dialog-kicker">CUENTA COMPARTIDA</span><h2 id="dialogTitle">Añadir movimiento</h2></div><button class="close-button" type="button" id="closeDialog" aria-label="Cerrar">×</button></div><div class="type-switch"><button type="button" class="type-option active" data-type="gasto">Gasto</button><button type="button" class="type-option" data-type="ingreso">Ingreso / aportación</button></div><input type="hidden" id="movementType" value="gasto"><div class="form-grid"><label class="full-field">Descripción<input id="description" name="description" placeholder="Por ejemplo, compra del supermercado" maxlength="80" required></label><label>Importe<div class="amount-input"><input id="amount" name="amount" type="number" min="-9999999" step="0.01" placeholder="0,00" required><span>€</span></div><small class="field-hint" id="amountHint">Usa un importe negativo para devoluciones o ajustes</small></label><label>Fecha<input id="date" name="date" type="date" required></label><label id="categoryField">Categoría<select id="category" name="category" required></select></label><label id="subcategoryField">Subcategoría<select id="subcategory" name="subcategory" required></select></label><label id="personField">¿Quién aporta?<select id="person" name="person"><option>Tito</option><option>Sheila</option><option>Varios</option></select></label></div><label class="notes-field">Nota <span>(opcional)</span><textarea id="notes" name="notes" rows="2" maxlength="180" placeholder="Un detalle que queráis recordar"></textarea></label><div class="dialog-actions"><button class="secondary-button" type="button" id="cancelDialog">Cancelar</button><button class="primary-button" type="submit">Guardar movimiento <span>→</span></button></div></form></dialog>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
+
