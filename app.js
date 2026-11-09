@@ -10,6 +10,7 @@ const CATEGORIES = {
   Otros: ['Otros'],
 };
 const HOUSEHOLD_ID = 'f8578860-5cab-48bf-8643-6c6ca874036c';
+const PIN_LOGIN_EMAIL = 'f.vaquero88@gmail.com';
 const IS_LOCAL_FILE = window.location.protocol === 'file:';
 const LOCAL_STORAGE_KEY = 'casa-en-comun-local-v1';
 const now = new Date();
@@ -37,7 +38,12 @@ const dialog = document.getElementById('movementDialog');
 const form = document.getElementById('movementForm');
 
 function euro(value) {
-  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(value || 0);
+  return new Intl.NumberFormat('es-ES', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value || 0);
 }
 function monthName(month = selectedMonth) { return MONTHS[month]; }
 function monthKey(year, month) { return year * 12 + month; }
@@ -449,7 +455,7 @@ async function applyFixedMonthly(button) {
   const amount = Number(rawAmount);
   if (!date) { toast('Indica la fecha del movimiento.', true); return; }
   if (!description) { toast('Escribe una descripción.', true); return; }
-  if (rawAmount === '' || !Number.isFinite(amount) || amount === 0 || (template.type === 'ingreso' && amount < 0)) {
+  if (rawAmount === '' || !Number.isFinite(amount) || (template.type === 'gasto' && amount === 0) || (template.type === 'ingreso' && amount < 0)) {
     toast('Indica un importe válido.', true); return;
   }
   const movement = {
@@ -511,7 +517,7 @@ async function saveFixedMonthlyEdit(button) {
   const amount = Number(rawAmount);
   if (!date) { toast('Indica la fecha del movimiento.', true); return; }
   if (!description) { toast('Escribe una descripción.', true); return; }
-  if (rawAmount === '' || !Number.isFinite(amount) || amount === 0 || (template.type === 'ingreso' && amount < 0)) {
+  if (rawAmount === '' || !Number.isFinite(amount) || (template.type === 'gasto' && amount === 0) || (template.type === 'ingreso' && amount < 0)) {
     toast('Indica un importe válido.', true); return;
   }
   button.disabled = true;
@@ -596,7 +602,7 @@ function setType(type) {
   document.getElementById('personField').style.display = income ? 'grid' : 'none';
   document.getElementById('category').required = !income;
   document.getElementById('subcategory').required = !income;
-  document.getElementById('amount').min = income ? '0.01' : '-9999999';
+  document.getElementById('amount').min = income ? '0' : '-9999999';
   document.getElementById('amountHint').hidden = income;
   document.getElementById('dialogTitle').textContent = editingId ? 'Editar movimiento' : income ? 'Añadir ingreso o aportación' : 'Añadir gasto';
 }
@@ -613,7 +619,7 @@ async function saveMovement(event) {
   if (currentMember?.rol !== 'admin') return;
   const type = document.getElementById('movementType').value;
   const amount = Number(document.getElementById('amount').value);
-  if (!Number.isFinite(amount) || amount === 0 || (type === 'ingreso' && amount < 0)) return;
+  if (!Number.isFinite(amount) || (type === 'gasto' && amount === 0) || (type === 'ingreso' && amount < 0)) return;
   const date = document.getElementById('date').value;
   const periodValue = document.getElementById('periodMonth').value;
   const [periodYear, periodMonth] = periodValue.split('-').map(Number);
@@ -686,17 +692,17 @@ function editMovement(id) {
 
 document.getElementById('authForm').addEventListener('submit', async event => {
   event.preventDefault();
-  const email = document.getElementById('authEmail').value.trim();
-  const password = document.getElementById('authPassword').value;
+  const pin = document.getElementById('authPassword').value;
   const button = document.getElementById('signInButton');
   if (!supabaseClient) { showAuth('No se pudo iniciar la conexión con la base de datos.', true); return; }
+  if (!/^\d{8}$/.test(pin)) { showAuth('Introduce un PIN de 8 cifras.', true); return; }
   button.disabled = true;
   authMessage.classList.remove('error');
   authMessage.textContent = 'Comprobando el acceso…';
-  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  const { error } = await supabaseClient.auth.signInWithPassword({ email: PIN_LOGIN_EMAIL, password: pin });
   button.disabled = false;
   if (error) {
-    authMessage.textContent = 'Usuario o contraseña incorrectos. Si aún no tienes contraseña, usa «He olvidado mi contraseña» para crearla.';
+    authMessage.textContent = 'PIN incorrecto. Si todavía no has configurado el PIN, usa «He olvidado el PIN».';
     authMessage.classList.add('error');
     console.warn('No se pudo iniciar sesión.');
     return;
@@ -705,14 +711,12 @@ document.getElementById('authForm').addEventListener('submit', async event => {
 });
 
 document.getElementById('forgotPassword').addEventListener('click', async () => {
-  const emailInput = document.getElementById('authEmail');
-  if (!emailInput.reportValidity()) return;
   if (!supabaseClient) { showAuth('No se pudo iniciar la conexión con la base de datos.', true); return; }
   const button = document.getElementById('forgotPassword');
   button.disabled = true;
   authMessage.classList.remove('error');
   authMessage.textContent = 'Enviando instrucciones…';
-  const { error } = await supabaseClient.auth.resetPasswordForEmail(emailInput.value.trim(), {
+  const { error } = await supabaseClient.auth.resetPasswordForEmail(PIN_LOGIN_EMAIL, {
     redirectTo: IS_LOCAL_FILE
       ? 'https://vaquero88.github.io/gastos-en-casa/?password_recovery=1'
       : `${window.location.origin}${window.location.pathname}?password_recovery=1`,
@@ -729,18 +733,18 @@ document.getElementById('forgotPassword').addEventListener('click', async () => 
 document.getElementById('passwordRecoveryForm').addEventListener('submit', async event => {
   event.preventDefault();
   const password = document.getElementById('newPassword').value;
-  if (password.length < 8) { showPasswordRecovery('La contraseña debe tener al menos 8 caracteres.'); return; }
+  if (!/^\d{8}$/.test(password)) { showPasswordRecovery('El PIN debe tener exactamente 8 cifras.'); return; }
   const button = document.getElementById('saveNewPassword');
   button.disabled = true;
   const { error } = await supabaseClient.auth.updateUser({ password });
   button.disabled = false;
   if (error) {
-    showPasswordRecovery('No se pudo guardar la contraseña. Vuelve a abrir el enlace del correo e inténtalo otra vez.');
+    showPasswordRecovery('No se pudo guardar el PIN. Vuelve a abrir el enlace del correo e inténtalo otra vez.');
     return;
   }
   window.history.replaceState({}, '', `${window.location.origin}${window.location.pathname}`);
   document.getElementById('newPassword').value = '';
-  authMessage.textContent = 'Contraseña guardada. Abriendo la cuenta…';
+  authMessage.textContent = 'PIN guardado. Abriendo la cuenta…';
 });
 
 document.getElementById('signOut').onclick = async () => { await supabaseClient.auth.signOut(); };
@@ -821,7 +825,8 @@ async function clientEventListener() {
   const { data, error } = await supabaseClient.auth.getSession();
   if (error) { showAuth('No se pudo comprobar la sesión.', true); return; }
   const recoveryInProgress = new URLSearchParams(window.location.search).get('password_recovery') === '1';
-  if (recoveryInProgress) showPasswordRecovery('Crea una contraseña nueva para este usuario.');
+  if (recoveryInProgress) showPasswordRecovery('Crea un PIN nuevo para entrar.');
   else if (data.session) await activateSession(data.session);
   else showAuth();
 }
+
