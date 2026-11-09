@@ -362,6 +362,7 @@ function render() {
   if (!currentMember) return;
   const result = totals();
   document.getElementById('monthLabel').textContent = `${monthName()} ${selectedYear}`;
+  document.getElementById('monthPicker').value = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`;
   document.getElementById('periodText').textContent = `${monthName().toLocaleLowerCase('es-ES')} de ${selectedYear}`;
   document.getElementById('balanceValue').textContent = euro(result.balance);
   document.getElementById('incomeValue').textContent = euro(result.income);
@@ -815,6 +816,13 @@ form.addEventListener('submit', saveMovement);
 document.getElementById('prevMonth').onclick = () => moveMonth(-1);
 document.getElementById('nextMonth').onclick = () => moveMonth(1);
 document.getElementById('currentMonth').onclick = () => { selectedYear = now.getFullYear(); selectedMonth = now.getMonth(); render(); };
+document.getElementById('monthPicker').addEventListener('change', event => {
+  const [year, month] = event.target.value.split('-').map(Number);
+  if (!year || month < 1 || month > 12) return;
+  selectedYear = year;
+  selectedMonth = month - 1;
+  render();
+});
 document.getElementById('movementDay').innerHTML += Array.from({ length: 31 }, (_, index) => `<option value="${index + 1}">${index + 1}</option>`).join('');
 document.getElementById('categoryFilters').innerHTML = `<button type="button" class="category-filter active" data-category-filter="TODOS" aria-pressed="true">TODOS</button><button type="button" class="category-filter" data-category-filter="GASTOS" aria-pressed="false">GASTOS</button><button type="button" class="category-filter" data-category-filter="INGRESOS" aria-pressed="false">INGRESOS</button>` + Object.keys(CATEGORIES).map(category => `<button type="button" class="category-filter active" data-category-filter="${escapeHtml(category)}" aria-pressed="true">${escapeHtml(category)}</button>`).join('');
 document.querySelectorAll('[data-category-filter]').forEach(button => button.addEventListener('click', () => {
