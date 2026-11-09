@@ -1,0 +1,1 @@
+-- Allow zero-value income entries while keeping zero-value expenses invalid.\nalter table public.casa_movimientos\n  drop constraint if exists casa_movimientos_importe_check;\n\nalter table public.casa_movimientos\n  add constraint casa_movimientos_importe_check\n  check (tipo = 'ingreso' or importe <> 0);\n
