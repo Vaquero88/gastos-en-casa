@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f7f3">
   <title>Casa en común · Gastos</title>
-  <script>if (window.location.protocol === 'file:') window.location.replace('http://localhost:3000/');</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,17 +13,7 @@
   <link rel="stylesheet" href="theme.css">
 </head>
 <body>
-  <section class="auth-gate" id="authGate">
-    <div class="auth-card">
-      <span class="brand-mark auth-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3.5 11 8.5-7 8.5 7v9a.8.8 0 0 1-.8.8h-5.1v-6.2H9.4v6.2H4.3a.8.8 0 0 1-.8-.8z"/><path d="M8 7.4V4.8h3"/></svg></span>
-      <p class="dialog-kicker">CASA EN COMÚN</p><h1>Vuestras cuentas,<br>solo para vosotros.</h1>
-      <p class="auth-description">Introduce el PIN para abrir la cuenta familiar.</p>
-      <form id="authForm"><label for="authPassword">PIN</label><input id="authPassword" type="password" inputmode="numeric" autocomplete="current-password" pattern="[0-9]{8}" minlength="8" maxlength="8" aria-label="PIN de ocho cifras" required><button id="signInButton" class="primary-button" type="submit">Entrar <span>→</span></button><button id="forgotPassword" class="auth-link-button" type="button">He olvidado el PIN</button></form>
-      <form id="passwordRecoveryForm" hidden><label for="newPassword">Nuevo PIN</label><input id="newPassword" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{8}" minlength="8" maxlength="8" aria-label="Nuevo PIN de ocho cifras" required><button id="saveNewPassword" class="primary-button" type="submit">Guardar PIN</button></form>
-      <p class="auth-message" id="authMessage" aria-live="polite"></p><p class="auth-footnote">Los datos de ingresos y gastos solo se muestran a los miembros autorizados.</p>
-    </div>
-  </section>
-  <div class="app-shell" id="appShell" hidden>
+  <div class="app-shell" id="appShell">
     <aside class="sidebar">
       <a class="brand" href="#inicio" data-view="inicio" aria-label="Casa en común, inicio">
         <span class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3.5 11 8.5-7 8.5 7v9a.8.8 0 0 1-.8.8h-5.1v-6.2H9.4v6.2H4.3a.8.8 0 0 1-.8-.8z"/><path d="M8 7.4V4.8h3"/></svg></span>
@@ -45,7 +34,7 @@
     </aside>
 
     <main class="main-content">
-      <header class="topbar"><div class="crumb">Vuestro hogar <span>/</span> <b id="breadcrumb">Resumen</b></div><div class="top-actions"><span class="sync-status"><i></i> <span id="syncStatusText">Conectado a Supabase</span></span><button class="icon-button" id="signOut" aria-label="Cerrar sesión" title="Cerrar sesión">↪</button></div></header>
+      <header class="topbar"><div class="crumb">Vuestro hogar <span>/</span> <b id="breadcrumb">Resumen</b></div><div class="top-actions"><span class="sync-status"><i></i> <span id="syncStatusText">Conectando con la cuenta común…</span></span></div></header>
       <section class="page-heading">
         <div><p class="eyebrow" id="todayLabel">VUESTRO DINERO, EN ORDEN</p><h1 id="pageTitle">Resumen</h1><p class="heading-subtitle" id="pageSubtitle">Todo lo que entra y sale de vuestra cuenta común.</p></div>
         <div class="heading-actions"><div class="month-select"><button id="prevMonth" aria-label="Mes anterior">‹</button><span id="monthLabel">Noviembre 2026</span><button id="nextMonth" aria-label="Mes siguiente">›</button><button class="current-month-quick" id="currentMonth" aria-label="Volver al mes actual" title="Volver al mes actual">Hoy</button></div><button class="primary-button" id="addMovement"><span>＋</span> Añadir movimiento</button></div>
@@ -108,3 +97,4 @@
   <script src="app.js"></script>
 </body>
 </html>
+
