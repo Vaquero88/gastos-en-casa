@@ -243,7 +243,7 @@ function render() {
     byPerson[item.person] = (byPerson[item.person] || 0) + item.amount;
   });
   document.getElementById('contributionTotal').textContent = euro(result.income);
-  document.getElementById('peopleList').innerHTML = ['Tito', 'Sheila'].map(name => `
+  document.getElementById('peopleList').innerHTML = ['Tito', 'Sheila', 'Varios'].map(name => `
     <div class="person-row"><span class="person-avatar ${name.toLowerCase()}">${name[0]}</span>
     <span class="person-name"><strong>${name}</strong><small>Aportación del mes</small></span>
     <span class="person-amount">${euro(byPerson[name] || 0)}</span>
@@ -341,7 +341,7 @@ function renderSecondaryViews(result) {
   const incomes = result.list.filter(item => item.type === 'ingreso');
   const byPerson = { Tito: 0, Sheila: 0, Varios: 0 };
   incomes.forEach(item => byPerson[item.person] = (byPerson[item.person] || 0) + item.amount);
-  document.getElementById('contributionSummaryGrid').innerHTML = ['Tito', 'Sheila'].map(name => `
+  document.getElementById('contributionSummaryGrid').innerHTML = ['Tito', 'Sheila', 'Varios'].map(name => `
     <article class="panel contribution-person-card"><span class="person-avatar ${name.toLowerCase()}">${name[0]}</span>
     <span class="contribution-card-name">${name}</span><strong>${euro(byPerson[name] || 0)}</strong>
     <small>Aportado en ${monthName().toLowerCase()}</small></article>`).join('') + `
