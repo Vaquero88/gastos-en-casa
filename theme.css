@@ -17,6 +17,13 @@
   --shadow: 0 8px 28px rgba(47, 34, 66, .07);
 }
 
+.ledger-overview { grid-template-columns: 1.25fr repeat(4, minmax(0, 1fr)); }
+.ledger-progress { display: block; margin-top: 5px; color: #7d837f; font-size: 8px; line-height: 1.45; white-space: normal; }
+.ledger-estimate-label { display: block; margin-top: 7px; color: #918b9b; font-size: 8px; }
+.ledger-card.ledger-mortgage-card .ledger-balance { color: #345b43; }
+@media (max-width: 1250px) { .ledger-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .ledger-overview { grid-template-columns: 1fr; } }
+
 body { background: #f4f0f8; color: #292438; }
 .sidebar { background: #2d263e; border-right-color: #2d263e; color: #f7f3fb; }
 .brand { color: #fff; }
