@@ -42,6 +42,27 @@ function euro(value) {
 }
 function monthName(month = selectedMonth) { return MONTHS[month]; }
 function monthKey(year, month) { return year * 12 + month; }
+function remainingTerm(months) {
+  const years = Math.floor(months / 12);
+  const remainingMonths = months % 12;
+  if (years && remainingMonths) return `${years} ${years === 1 ? 'año' : 'años'} y ${remainingMonths} ${remainingMonths === 1 ? 'mes' : 'meses'}`;
+  if (years) return `${years} ${years === 1 ? 'año' : 'años'}`;
+  return `${remainingMonths} ${remainingMonths === 1 ? 'mes' : 'meses'}`;
+}
+function latestLoanInstallment(subcategory, totalInstallments) {
+  const selectedPeriod = monthKey(selectedYear, selectedMonth + 1);
+  return db.movements
+    .filter(item => item.type === 'gasto' && item.category === 'Fijos' && item.subcategory === subcategory
+      && monthKey(item.periodYear, item.periodMonth) <= selectedPeriod)
+    .map(item => {
+      const match = item.description.match(/(\d{1,3})\s+de\s+(\d{1,3})/i);
+      if (!match || Number(match[2]) !== totalInstallments) return null;
+      return { number: Number(match[1]), amount: Math.abs(item.amount), period: monthKey(item.periodYear, item.periodMonth), date: item.date };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.period - b.period || a.date.localeCompare(b.date))
+    .at(-1) || null;
+}
 function dateForInput() {
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -160,6 +181,14 @@ function renderHouseholdBalances() {
   const conchiPaid = db.movements
     .filter(item => item.type === 'gasto' && item.category === 'Fijos' && item.subcategory === 'Préstamo Conchi')
     .reduce((sum, item) => sum + item.amount, 0);
+  const conchiProgress = latestLoanInstallment('Préstamo Conchi', 134);
+  const conchiInstallment = conchiProgress?.number || 0;
+  const conchiRemaining = Math.max(0, 134 - conchiInstallment);
+  const mortgageProgress = latestLoanInstallment('Hipoteca', 360);
+  const mortgageInstallment = mortgageProgress?.number || 0;
+  const mortgageRemaining = Math.max(0, 360 - mortgageInstallment);
+  const mortgageTemplate = fixedMonthlyTemplates().find(item => item.id === 'hipoteca');
+  const mortgageMonthlyAmount = mortgageProgress?.amount || Number(mortgageTemplate?.amount || 0);
   document.getElementById('lifetimeTito').textContent = euro(titoTotal);
   document.getElementById('lifetimeTitoDetail').textContent = `Inicio: ${euro(db.initialTito)} · desde 2026: ${euro(titoAdds)}`;
   document.getElementById('lifetimeSheila').textContent = euro(sheilaTotal);
@@ -173,6 +202,14 @@ function renderHouseholdBalances() {
   document.getElementById('huchaDetail').textContent = `Inicial: ${euro(db.initialSavings)} · movimientos: ${euro(huchaMovement)}`;
   document.getElementById('conchiBalance').textContent = euro(db.initialConchiDebt - conchiPaid);
   document.getElementById('conchiDetail').textContent = `Deuda inicial: ${euro(db.initialConchiDebt)} · pagos: ${euro(conchiPaid)}`;
+  document.getElementById('conchiProgress').textContent = conchiProgress
+    ? `Cuota ${conchiInstallment} de 134 · quedan ${conchiRemaining} (${remainingTerm(conchiRemaining)})`
+    : `Sin cuotas registradas · quedan ${conchiRemaining} (${remainingTerm(conchiRemaining)})`;
+  document.getElementById('mortgageProgress').textContent = mortgageProgress
+    ? `Pago ${mortgageInstallment} de 360 · quedan ${mortgageRemaining} (${remainingTerm(mortgageRemaining)})`
+    : `Sin cuotas registradas · quedan ${mortgageRemaining} (${remainingTerm(mortgageRemaining)})`;
+  document.getElementById('mortgageBalance').textContent = euro(mortgageMonthlyAmount * mortgageRemaining);
+  document.getElementById('mortgageDetail').textContent = `${euro(mortgageMonthlyAmount)} por cuota · total estimado de ${mortgageRemaining} cuotas`;
 }
 
 async function loadPublicData() {
