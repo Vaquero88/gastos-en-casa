@@ -24,6 +24,7 @@ let selectedMonth = now.getMonth();
 let activeView = 'inicio';
 let movementFilter = 'todos';
 let movementCategories = null;
+let categoryPeriodMode = 'month';
 let editingId = null;
 let currentMember = null;
 let undoHistory = [];
@@ -441,7 +442,17 @@ function renderCategories(expenses) {
   host.innerHTML = pairs.slice(0, 8).map(([name, amount]) => `<div class="category-item"><div class="category-title"><span>${escapeHtml(name)}</span><strong>${euro(amount)}</strong></div><div class="category-track"><i style="width:${pairs[0][1] ? Math.max(3, Math.abs(amount / pairs[0][1] * 100)) : 3}%"></i></div></div>`).join('');
 }
 function renderSecondaryViews(result) {
-  document.querySelectorAll('.selected-month-inline').forEach(element => element.textContent = monthName().toLowerCase());
+  const categoryExpenses = db.movements.filter(item => item.type === 'gasto'
+    && item.periodYear === selectedYear
+    && (categoryPeriodMode === 'year' || item.periodMonth === selectedMonth + 1));
+  document.getElementById('categoryPeriodCaption').textContent = categoryPeriodMode === 'year'
+    ? `Todo ${selectedYear}`
+    : `${monthName().toLowerCase()} de ${selectedYear}`;
+  document.querySelectorAll('[data-category-period]').forEach(button => {
+    const active = button.dataset.categoryPeriod === categoryPeriodMode;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
   const search = (document.getElementById('movementSearch')?.value || '').trim().toLocaleLowerCase('es-ES');
   const allHost = document.getElementById('allTransactionList');
   const allEmpty = document.getElementById('emptyMovementView');
@@ -488,7 +499,7 @@ function renderSecondaryViews(result) {
   bindTransactionActions(history);
 
   const groups = {};
-  result.expenses.forEach(item => {
+  categoryExpenses.forEach(item => {
     const category = item.category || 'Otros';
     const subcategory = item.subcategory || 'Otros';
     groups[category] ??= { total: 0, subs: {} };
@@ -501,7 +512,11 @@ function renderSecondaryViews(result) {
     <div><strong>${escapeHtml(name)}</strong><small>${Object.keys(data.subs).length} ${Object.keys(data.subs).length === 1 ? 'subcategoría' : 'subcategorías'}</small></div>
     <b>${euro(data.total)}</b></div><div class="subcategory-breakdown">${Object.entries(data.subs).sort((a, b) => b[1] - a[1]).map(([subcategory, amount]) => `
       <div><span>${escapeHtml(subcategory)}</span><strong>${euro(amount)}</strong></div>`).join('')}</div></article>`).join('');
-  document.getElementById('emptyCategoryView').classList.toggle('show', !groupList.length);
+  const categoryEmpty = document.getElementById('emptyCategoryView');
+  categoryEmpty.textContent = categoryPeriodMode === 'year'
+    ? `No hay gastos registrados en ${selectedYear}.`
+    : `No hay gastos registrados en ${monthName().toLowerCase()} de ${selectedYear}.`;
+  categoryEmpty.classList.toggle('show', !groupList.length);
   renderFixedMonthly();
 }
 
@@ -836,6 +851,10 @@ document.querySelectorAll('[data-category-filter]').forEach(button => button.add
     else movementCategories.add(category);
     movementFilter = 'gasto';
   }
+  render();
+}));
+document.querySelectorAll('[data-category-period]').forEach(button => button.addEventListener('click', () => {
+  categoryPeriodMode = button.dataset.categoryPeriod;
   render();
 }));
 document.getElementById('movementDay').addEventListener('change', () => render());
