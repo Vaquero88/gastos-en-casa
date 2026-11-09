@@ -40,7 +40,7 @@ create table if not exists public.casa_movimientos (
   categoria text not null,
   subcategoria text not null default '',
   persona text,
-  importe numeric(12,2) not null check (importe <> 0),
+  importe numeric(12,2) not null check (tipo = 'ingreso' or importe <> 0),
   notas text not null default '',
   clave_importacion text,
   plantilla_fijo_id text,
