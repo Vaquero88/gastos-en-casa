@@ -331,7 +331,9 @@ function renderSecondaryViews(result) {
       ? movementCategories === null && movementFilter === 'todos'
       : key === 'GASTOS'
         ? movementFilter === 'gasto' && movementCategories === null
-        : movementCategories === null || movementCategories.has(key);
+        : key === 'INGRESOS'
+          ? movementFilter === 'ingreso' && movementCategories === null
+          : movementFilter !== 'ingreso' && (movementCategories === null || movementCategories.has(key));
     button.classList.toggle('active', selected);
     button.setAttribute('aria-pressed', String(selected));
   });
@@ -666,11 +668,12 @@ document.getElementById('prevMonth').onclick = () => moveMonth(-1);
 document.getElementById('nextMonth').onclick = () => moveMonth(1);
 document.getElementById('currentMonth').onclick = () => { selectedYear = now.getFullYear(); selectedMonth = now.getMonth(); render(); };
 document.getElementById('movementDay').innerHTML += Array.from({ length: 31 }, (_, index) => `<option value="${index + 1}">${index + 1}</option>`).join('');
-document.getElementById('categoryFilters').innerHTML = `<button type="button" class="category-filter active" data-category-filter="TODOS" aria-pressed="true">TODOS</button><button type="button" class="category-filter" data-category-filter="GASTOS" aria-pressed="false">GASTOS</button>` + Object.keys(CATEGORIES).map(category => `<button type="button" class="category-filter active" data-category-filter="${escapeHtml(category)}" aria-pressed="true">${escapeHtml(category)}</button>`).join('');
+document.getElementById('categoryFilters').innerHTML = `<button type="button" class="category-filter active" data-category-filter="TODOS" aria-pressed="true">TODOS</button><button type="button" class="category-filter" data-category-filter="GASTOS" aria-pressed="false">GASTOS</button><button type="button" class="category-filter" data-category-filter="INGRESOS" aria-pressed="false">INGRESOS</button>` + Object.keys(CATEGORIES).map(category => `<button type="button" class="category-filter active" data-category-filter="${escapeHtml(category)}" aria-pressed="true">${escapeHtml(category)}</button>`).join('');
 document.querySelectorAll('[data-category-filter]').forEach(button => button.addEventListener('click', () => {
   const category = button.dataset.categoryFilter;
   if (category === 'TODOS') { movementCategories = null; movementFilter = 'todos'; }
   else if (category === 'GASTOS') { movementCategories = null; movementFilter = 'gasto'; }
+  else if (category === 'INGRESOS') { movementCategories = null; movementFilter = 'ingreso'; }
   else {
     if (movementCategories === null) movementCategories = new Set([category]);
     else if (movementCategories.has(category)) movementCategories.delete(category);
