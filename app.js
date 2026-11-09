@@ -26,6 +26,8 @@ let movementFilter = 'todos';
 let movementCategories = null;
 let editingId = null;
 let currentMember = null;
+let undoHistory = [];
+let redoHistory = [];
 let db = { openingBalance: 0, initialSavings: 0, initialConchiDebt: 0, initialTito: 0, initialSheila: 0, movements: [] };
 
 const appShell = document.getElementById('appShell');
@@ -261,6 +263,102 @@ async function refreshMovements() {
   render();
 }
 
+function sameMovement(a, b) {
+  if (!a || !b) return a === b;
+  return ['date','periodYear','periodMonth','description','type','category','subcategory','person','amount','notes','fixedTemplateId']
+    .every(key => a[key] === b[key]);
+}
+function recordMovementHistory(previousMovements, label) {
+  const before = new Map(previousMovements.map(item => [String(item.id), { ...item }]));
+  const after = new Map(db.movements.map(item => [String(item.id), { ...item }]));
+  const ids = new Set([...before.keys(), ...after.keys()]);
+  const changes = [];
+  ids.forEach(id => {
+    const oldItem = before.get(id) || null;
+    const newItem = after.get(id) || null;
+    if (!sameMovement(oldItem, newItem)) changes.push({ id, before: oldItem, after: newItem });
+  });
+  if (!changes.length) return;
+  undoHistory.push({ label, changes });
+  if (undoHistory.length > 50) undoHistory.shift();
+  redoHistory = [];
+  updateHistoryButtons();
+}
+function updateHistoryButtons() {
+  const undo = document.getElementById('undoAction');
+  const redo = document.getElementById('redoAction');
+  if (undo) undo.disabled = undoHistory.length === 0;
+  if (redo) redo.disabled = redoHistory.length === 0;
+  if (undo) undo.title = undoHistory.length ? `Deshacer: ${undoHistory.at(-1).label}` : 'Deshacer el último cambio';
+  if (redo) redo.title = redoHistory.length ? `Rehacer: ${redoHistory.at(-1).label}` : 'Rehacer el último cambio deshecho';
+}
+function movementToDatabase(item) {
+  return {
+    id: item.id,
+    hogar_id: currentMember.hogar_id,
+    fecha: item.date,
+    periodo_anio: item.periodYear,
+    periodo_mes: item.periodMonth,
+    descripcion: item.description,
+    tipo: item.type,
+    categoria: item.category,
+    subcategoria: item.subcategory || '',
+    persona: item.person || null,
+    importe: item.amount,
+    notas: item.notes || '',
+    plantilla_fijo_id: item.fixedTemplateId || null,
+    creado_por: null,
+    archivado: false,
+  };
+}
+async function applyHistory(direction) {
+  const undoing = direction === 'undo';
+  const source = undoing ? undoHistory : redoHistory;
+  const destination = undoing ? redoHistory : undoHistory;
+  const entry = source.at(-1);
+  if (!entry || !currentMember) return;
+  const undoButton = document.getElementById('undoAction');
+  const redoButton = document.getElementById('redoAction');
+  undoButton.disabled = true;
+  redoButton.disabled = true;
+  try {
+    for (const change of entry.changes) {
+      const target = undoing ? change.before : change.after;
+      if (IS_LOCAL_FILE && !supabaseClient) {
+        if (target) {
+          const index = db.movements.findIndex(item => String(item.id) === change.id);
+          if (index < 0) db.movements.push({ ...target });
+          else db.movements[index] = { ...target };
+        } else {
+          db.movements = db.movements.filter(item => String(item.id) !== change.id);
+        }
+        continue;
+      }
+      const response = target
+        ? await supabaseClient.from('casa_movimientos').upsert(movementToDatabase(target), { onConflict: 'id' })
+        : await supabaseClient.from('casa_movimientos').update({ archivado: true })
+          .eq('id', change.id).eq('hogar_id', currentMember.hogar_id);
+      if (response.error) throw response.error;
+    }
+    if (IS_LOCAL_FILE && !supabaseClient) {
+      saveLocalData();
+      render();
+    } else {
+      await refreshMovements();
+    }
+    source.pop();
+    destination.push(entry);
+    updateHistoryButtons();
+    toast(undoing ? `Deshecho: ${entry.label}` : `Rehecho: ${entry.label}`);
+  } catch (error) {
+    updateHistoryButtons();
+    console.error(`No se pudo ${undoing ? 'deshacer' : 'rehacer'} el cambio:`, error);
+    toast(`No se pudo ${undoing ? 'deshacer' : 'rehacer'} el cambio.`, true);
+  }
+}
+function undoMovement() { return applyHistory('undo'); }
+function redoMovement() { return applyHistory('redo'); }
+
 function render() {
   if (!currentMember) return;
   const result = totals();
@@ -458,6 +556,7 @@ async function applyFixedMonthly(button) {
   if (rawAmount === '' || !Number.isFinite(amount) || (template.type === 'gasto' && amount === 0) || (template.type === 'ingreso' && amount < 0)) {
     toast('Indica un importe válido.', true); return;
   }
+  const previousMovements = db.movements.map(item => ({ ...item }));
   const movement = {
     hogar_id: currentMember.hogar_id,
     fecha: date,
@@ -479,10 +578,12 @@ async function applyFixedMonthly(button) {
         description, type: template.type, category: template.category, subcategory: template.subcategory,
         person: template.person || null, amount, notes: '', fixedTemplateId: template.id, createdAt: Date.now() });
       saveLocalData();
+      recordMovementHistory(previousMovements, `añadir ${description}`);
     } else {
       const { error } = await supabaseClient.from('casa_movimientos').insert(movement);
       if (error) throw error;
       await refreshMovements();
+      recordMovementHistory(previousMovements, `añadir ${description}`);
     }
     render();
     toast('Movimiento fijo añadido');
@@ -520,6 +621,7 @@ async function saveFixedMonthlyEdit(button) {
   if (rawAmount === '' || !Number.isFinite(amount) || (template.type === 'gasto' && amount === 0) || (template.type === 'ingreso' && amount < 0)) {
     toast('Indica un importe válido.', true); return;
   }
+  const previousMovements = db.movements.map(item => ({ ...item }));
   button.disabled = true;
   try {
     if (IS_LOCAL_FILE && !supabaseClient) {
@@ -527,6 +629,7 @@ async function saveFixedMonthlyEdit(button) {
         ? { ...item, date, description, amount, fixedTemplateId: template.id }
         : item);
       saveLocalData();
+      recordMovementHistory(previousMovements, `editar ${description}`);
     } else {
       const { error } = await supabaseClient.from('casa_movimientos').update({
         fecha: date,
@@ -536,6 +639,7 @@ async function saveFixedMonthlyEdit(button) {
       }).eq('id', movement.id).eq('hogar_id', currentMember.hogar_id);
       if (error) throw error;
       await refreshMovements();
+      recordMovementHistory(previousMovements, `editar ${description}`);
     }
     render();
     toast('Movimiento fijo actualizado');
@@ -638,6 +742,8 @@ async function saveMovement(event) {
     creado_por: null,
   };
   if (!date || !periodYear || !periodMonth || !movement.descripcion) return;
+  const previousMovements = db.movements.map(item => ({ ...item }));
+  const historyLabel = `${editingId ? 'editar' : 'añadir'} ${movement.descripcion}`;
   if (IS_LOCAL_FILE && !supabaseClient) {
     const localMovement = {
       id: editingId || (crypto.randomUUID ? crypto.randomUUID() : `local-${Date.now()}-${Math.random().toString(16).slice(2)}`),
@@ -651,6 +757,7 @@ async function saveMovement(event) {
     selectedYear = periodYear;
     selectedMonth = periodMonth - 1;
     closeDialog();
+    recordMovementHistory(previousMovements, historyLabel);
     render();
     toast('Guardado solo en este navegador');
     return;
@@ -664,6 +771,7 @@ async function saveMovement(event) {
     selectedMonth = periodMonth - 1;
     closeDialog();
     await refreshMovements();
+    recordMovementHistory(previousMovements, historyLabel);
     toast(editingId ? 'Movimiento actualizado' : 'Movimiento guardado');
   } catch (error) {
     toast('No se pudo guardar el movimiento. Inténtalo de nuevo.', true);
@@ -673,9 +781,11 @@ async function saveMovement(event) {
 async function archiveMovement(id) {
   const movement = db.movements.find(item => item.id === id);
   if (!movement || currentMember?.rol !== 'admin' || !confirm(`¿Archivar «${movement.description}»?`)) return;
+  const previousMovements = db.movements.map(item => ({ ...item }));
   if (IS_LOCAL_FILE && !supabaseClient) {
     db.movements = db.movements.filter(item => item.id !== id);
     saveLocalData();
+    recordMovementHistory(previousMovements, `archivar ${movement.description}`);
     render();
     toast('Movimiento quitado de este navegador');
     return;
@@ -683,6 +793,7 @@ async function archiveMovement(id) {
   const { error } = await supabaseClient.from('casa_movimientos').update({ archivado: true }).eq('id', id).eq('hogar_id', currentMember.hogar_id);
   if (error) { toast('No se pudo archivar el movimiento.', true); return; }
   await refreshMovements();
+  recordMovementHistory(previousMovements, `archivar ${movement.description}`);
   toast('Movimiento archivado');
 }
 function editMovement(id) {
@@ -690,6 +801,9 @@ function editMovement(id) {
   if (movement) openMovement(movement.type, movement);
 }
 
+document.getElementById('undoAction').onclick = undoMovement;
+document.getElementById('redoAction').onclick = redoMovement;
+updateHistoryButtons();
 document.getElementById('addMovement').onclick = () => openMovement('gasto');
 document.getElementById('emptyAdd').onclick = () => openMovement('gasto');
 document.getElementById('addContribution').onclick = () => openMovement('ingreso');
