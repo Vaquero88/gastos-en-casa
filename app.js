@@ -159,9 +159,7 @@ function totals() {
   const income = list.filter(item => item.type === 'ingreso').reduce((sum, item) => sum + item.amount, 0);
   const expenses = list.filter(item => item.type === 'gasto');
   const expense = expenses.reduce((sum, item) => sum + item.amount, 0);
-  const period = monthKey(selectedYear, selectedMonth + 1);
   const balance = db.openingBalance + db.movements
-    .filter(item => monthKey(item.periodYear, item.periodMonth) <= period)
     .reduce((sum, item) => sum + (item.type === 'ingreso' ? item.amount : -item.amount), 0);
   return { list, income, expense, expenses, balance };
 }
