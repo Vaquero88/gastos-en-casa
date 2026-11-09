@@ -223,10 +223,7 @@ async function loadPublicData() {
       .select('id,nombre,saldo_inicial,hucha_inicial,deuda_conchi_inicial,aportacion_inicial_tito,aportacion_inicial_sheila')
       .eq('id', HOUSEHOLD_ID).single();
     if (householdError) throw householdError;
-    const { data: rows, error: movementsError } = await supabaseClient.from('casa_movimientos')
-      .select('*').eq('hogar_id', HOUSEHOLD_ID).eq('archivado', false)
-      .order('periodo_anio').order('periodo_mes').order('fecha');
-    if (movementsError) throw movementsError;
+    const rows = await fetchAllMovements(HOUSEHOLD_ID);
     currentMember = { hogar_id: household.id, nombre: 'Cuenta común', rol: 'admin' };
     db = {
       openingBalance: Number(household.saldo_inicial || 0),
@@ -248,6 +245,19 @@ async function loadPublicData() {
     console.error('No se pudo cargar Supabase:', error);
   }
 }
+async function fetchAllMovements(householdId) {
+  const pageSize = 1000;
+  const rows = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await supabaseClient.from('casa_movimientos')
+      .select('*').eq('hogar_id', householdId).eq('archivado', false)
+      .order('periodo_anio').order('periodo_mes').order('fecha').order('id')
+      .range(offset, offset + pageSize - 1);
+    if (error) throw error;
+    rows.push(...(data || []));
+    if (!data || data.length < pageSize) return rows;
+  }
+}
 function setWriteAccess(canWrite) {
   ['addMovement', 'addContribution', 'addContributionView', 'emptyAdd'].forEach(id => {
     const button = document.getElementById(id);
@@ -255,11 +265,8 @@ function setWriteAccess(canWrite) {
   });
 }
 async function refreshMovements() {
-  const { data, error } = await supabaseClient.from('casa_movimientos')
-    .select('*').eq('hogar_id', currentMember.hogar_id).eq('archivado', false)
-    .order('periodo_anio').order('periodo_mes').order('fecha');
-  if (error) throw error;
-  db.movements = (data || []).map(mapFromDatabase);
+  const data = await fetchAllMovements(currentMember.hogar_id);
+  db.movements = data.map(mapFromDatabase);
   render();
 }
 
