@@ -13,7 +13,7 @@ const HOUSEHOLD_ID = 'f8578860-5cab-48bf-8643-6c6ca874036c';
 const IS_LOCAL_FILE = window.location.protocol === 'file:';
 const LOCAL_STORAGE_KEY = 'casa-en-comun-local-v1';
 const now = new Date();
-const supabaseClient = !IS_LOCAL_FILE && window.supabase?.createClient(
+const supabaseClient = window.supabase?.createClient(
   window.CASA_SUPABASE_URL,
   window.CASA_SUPABASE_PUBLISHABLE_KEY,
 );
@@ -416,14 +416,17 @@ function renderFixedMonthly() {
     const details = template.type === 'ingreso'
       ? `Ingreso · ${template.person}`
       : `Gasto · ${template.category} · ${template.subcategory}`;
-    return `<article class="fixed-monthly-row ${alreadyApplied ? 'is-applied' : ''}" data-fixed-id="${template.id}">
+    const values = applied || template;
+    return `<article class="fixed-monthly-row ${alreadyApplied ? 'is-applied' : ''}" data-fixed-id="${template.id}" data-movement-id="${applied?.id || ''}">
       <div class="fixed-monthly-details"><strong>${escapeHtml(details)}</strong><small>${alreadyApplied ? 'Ya está en movimientos de este mes' : 'Fecha del movimiento · pertenece a ' + monthName().toLowerCase()}</small></div>
       <div class="fixed-monthly-fields">
-        <label>Descripción<input data-fixed-description value="${escapeHtml(template.description)}" maxlength="100" ${alreadyApplied ? 'disabled' : ''}></label>
-        <label>Importe<input data-fixed-amount type="number" step="0.01" value="${template.amount ?? ''}" placeholder="Indica el importe" ${alreadyApplied ? 'disabled' : ''}></label>
-        <label>Fecha<input data-fixed-date type="date" required ${alreadyApplied ? 'disabled' : ''}></label>
+        <label>Descripción<input data-fixed-description value="${escapeHtml(values.description)}" maxlength="100" ${alreadyApplied ? 'disabled' : ''}></label>
+        <label>Importe<input data-fixed-amount type="number" step="0.01" value="${values.amount ?? ''}" placeholder="Indica el importe" ${alreadyApplied ? 'disabled' : ''}></label>
+        <label>Fecha<input data-fixed-date type="date" value="${applied?.date || ''}" required ${alreadyApplied ? 'disabled' : ''}></label>
       </div>
-      ${alreadyApplied ? '<span class="fixed-monthly-applied">✓ Aplicado</span>' : '<button class="fixed-monthly-apply" type="button" data-fixed-apply aria-label="Añadir movimiento">✓</button>'}
+      ${alreadyApplied
+        ? '<div class="fixed-monthly-actions"><span class="fixed-monthly-applied">✓ Aplicado</span><button class="fixed-monthly-edit" type="button" data-fixed-edit>Editar</button><button class="fixed-monthly-save" type="button" data-fixed-save hidden>Guardar</button></div>'
+        : '<button class="fixed-monthly-apply" type="button" data-fixed-apply aria-label="Añadir movimiento">✓</button>'}
     </article>`;
   });
   host.innerHTML = rows.join('');
@@ -465,7 +468,7 @@ async function applyFixedMonthly(button) {
     plantilla_fijo_id: template.id,
   };
   try {
-    if (IS_LOCAL_FILE) {
+    if (IS_LOCAL_FILE && !supabaseClient) {
       db.movements.push({ id: crypto.randomUUID(), date, periodYear: selectedYear, periodMonth: selectedMonth + 1,
         description, type: template.type, category: template.category, subcategory: template.subcategory,
         person: template.person || null, amount, notes: '', fixedTemplateId: template.id, createdAt: Date.now() });
@@ -485,6 +488,55 @@ async function applyFixedMonthly(button) {
       console.error('No se pudo aplicar el fijo:', error);
       toast('No se pudo añadir el movimiento fijo.', true);
     }
+  }
+}
+
+function editFixedMonthly(button) {
+  const row = button.closest('[data-fixed-id]');
+  if (!row) return;
+  row.querySelectorAll('.fixed-monthly-fields input').forEach(input => { input.disabled = false; });
+  button.hidden = true;
+  row.querySelector('[data-fixed-save]').hidden = false;
+}
+
+async function saveFixedMonthlyEdit(button) {
+  if (currentMember?.rol !== 'admin') return;
+  const row = button.closest('[data-fixed-id]');
+  const movement = db.movements.find(item => String(item.id) === row?.dataset.movementId);
+  const template = fixedMonthlyTemplates().find(item => item.id === row?.dataset.fixedId);
+  if (!row || !movement || !template) { toast('No se encontró el movimiento para editar.', true); return; }
+  const date = row.querySelector('[data-fixed-date]').value;
+  const description = row.querySelector('[data-fixed-description]').value.trim();
+  const rawAmount = row.querySelector('[data-fixed-amount]').value;
+  const amount = Number(rawAmount);
+  if (!date) { toast('Indica la fecha del movimiento.', true); return; }
+  if (!description) { toast('Escribe una descripción.', true); return; }
+  if (rawAmount === '' || !Number.isFinite(amount) || amount === 0 || (template.type === 'ingreso' && amount < 0)) {
+    toast('Indica un importe válido.', true); return;
+  }
+  button.disabled = true;
+  try {
+    if (IS_LOCAL_FILE && !supabaseClient) {
+      db.movements = db.movements.map(item => item.id === movement.id
+        ? { ...item, date, description, amount, fixedTemplateId: template.id }
+        : item);
+      saveLocalData();
+    } else {
+      const { error } = await supabaseClient.from('casa_movimientos').update({
+        fecha: date,
+        descripcion: description,
+        importe: amount,
+        plantilla_fijo_id: template.id,
+      }).eq('id', movement.id).eq('hogar_id', currentMember.hogar_id);
+      if (error) throw error;
+      await refreshMovements();
+    }
+    render();
+    toast('Movimiento fijo actualizado');
+  } catch (error) {
+    button.disabled = false;
+    console.error('No se pudo editar el fijo:', error);
+    toast(error.code === '23505' ? 'Ya hay otro movimiento fijo de este tipo en el mes.' : 'No se pudo actualizar el movimiento fijo.', true);
   }
 }
 
@@ -580,7 +632,7 @@ async function saveMovement(event) {
     creado_por: currentUser.id,
   };
   if (!date || !periodYear || !periodMonth || !movement.descripcion) return;
-  if (IS_LOCAL_FILE) {
+  if (IS_LOCAL_FILE && !supabaseClient) {
     const localMovement = {
       id: editingId || (crypto.randomUUID ? crypto.randomUUID() : `local-${Date.now()}-${Math.random().toString(16).slice(2)}`),
       date, periodYear, periodMonth, description: movement.descripcion, type,
@@ -615,7 +667,7 @@ async function saveMovement(event) {
 async function archiveMovement(id) {
   const movement = db.movements.find(item => item.id === id);
   if (!movement || currentMember?.rol !== 'admin' || !confirm(`¿Archivar «${movement.description}»?`)) return;
-  if (IS_LOCAL_FILE) {
+  if (IS_LOCAL_FILE && !supabaseClient) {
     db.movements = db.movements.filter(item => item.id !== id);
     saveLocalData();
     render();
@@ -661,7 +713,9 @@ document.getElementById('forgotPassword').addEventListener('click', async () => 
   authMessage.classList.remove('error');
   authMessage.textContent = 'Enviando instrucciones…';
   const { error } = await supabaseClient.auth.resetPasswordForEmail(emailInput.value.trim(), {
-    redirectTo: `${window.location.origin}${window.location.pathname}?password_recovery=1`,
+    redirectTo: IS_LOCAL_FILE
+      ? 'https://vaquero88.github.io/gastos-en-casa/?password_recovery=1'
+      : `${window.location.origin}${window.location.pathname}?password_recovery=1`,
   });
   button.disabled = false;
   if (error) {
@@ -730,25 +784,18 @@ document.querySelectorAll('[data-view]').forEach(element => element.addEventList
 }));
 document.getElementById('fixedMonthlyList').addEventListener('click', event => {
   const button = event.target.closest('[data-fixed-apply]');
+  const editButton = event.target.closest('[data-fixed-edit]');
+  const saveButton = event.target.closest('[data-fixed-save]');
   if (button) applyFixedMonthly(button);
+  else if (editButton) editFixedMonthly(editButton);
+  else if (saveButton) saveFixedMonthlyEdit(saveButton);
 });
 document.getElementById('movementSearch').addEventListener('input', () => render());
 
 clientEventListener();
 async function clientEventListener() {
   if (IS_LOCAL_FILE) {
-    loadLocalData();
-    currentMember = { rol: 'admin', hogar_id: HOUSEHOLD_ID };
-    currentUser = { id: 'local-only' };
-    document.querySelector('.profile-button strong').textContent = 'Modo local';
-    document.querySelector('.profile-button small').textContent = 'Solo este navegador';
-    document.querySelector('.profile-button .avatar').textContent = 'L';
-    document.getElementById('syncStatusText').textContent = 'Guardado en este navegador';
-    document.getElementById('signOut').hidden = true;
-    setWriteAccess(true);
-    authGate.hidden = true;
-    appShell.hidden = false;
-    render();
+    showAuth('Para iniciar sesión y ver los datos compartidos, abre «Abrir Casa en comun local.bat» desde la carpeta de la aplicación.');
     return;
   }
   if (!supabaseClient) {

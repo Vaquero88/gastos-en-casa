@@ -169,7 +169,7 @@ body { background: #f4f0f8; color: #292438; }
 .subcategory-breakdown strong { color: #50495c; font-size: 10px; }
 .fixed-monthly-summary { margin: 14px 0 17px; color: #81798d; font-size: 10px; line-height: 1.6; }
 .fixed-monthly-list { display: grid; gap: 10px; }
-.fixed-monthly-row { display: grid; grid-template-columns: minmax(155px, .85fr) minmax(0, 2fr) 38px; align-items: center; gap: 14px; padding: 13px; border: 1px solid #eee9f2; border-radius: 10px; background: #fff; }
+.fixed-monthly-row { display: grid; grid-template-columns: minmax(155px, .85fr) minmax(0, 2fr) auto; align-items: center; gap: 14px; padding: 13px; border: 1px solid #eee9f2; border-radius: 10px; background: #fff; }
 .fixed-monthly-details { display: grid; gap: 5px; }
 .fixed-monthly-details strong { color: #50485e; font-size: 10px; }
 .fixed-monthly-details small { color: #918b9b; font-size: 9px; line-height: 1.45; }
@@ -180,6 +180,9 @@ body { background: #f4f0f8; color: #292438; }
 .fixed-monthly-apply { display: grid; place-items: center; width: 34px; height: 34px; border: 0; border-radius: 50%; background: #e8f3ed; color: #39765e; font-size: 17px; font-weight: 800; cursor: pointer; }
 .fixed-monthly-apply:hover { background: #d6ebdf; }
 .fixed-monthly-applied { justify-self: center; color: #39765e; font-size: 9px; font-weight: 700; }
+.fixed-monthly-actions { display: flex; align-items: center; gap: 8px; }
+.fixed-monthly-edit, .fixed-monthly-save { border: 1px solid #e5dfeb; border-radius: 7px; padding: 7px 9px; background: #fff; color: #654788; font-size: 9px; font-weight: 700; cursor: pointer; }
+.fixed-monthly-save { border-color: #d0e4d8; background: #e8f3ed; color: #39765e; }
 .fixed-monthly-row.is-applied { background: #fbfdfb; }
 
 @media (max-width: 720px) {
@@ -193,7 +196,7 @@ body { background: #f4f0f8; color: #292438; }
   .contribution-summary-grid { grid-template-columns: 1fr; }
   .contribution-person-card { min-height: 112px; }
   .category-detail-list { grid-template-columns: 1fr; }
-  .fixed-monthly-row { grid-template-columns: 1fr 34px; gap: 10px; }
+  .fixed-monthly-row { grid-template-columns: 1fr auto; gap: 10px; }
   .fixed-monthly-details { grid-column: 1 / -1; }
   .fixed-monthly-fields { grid-template-columns: 1fr 1fr; }
   .fixed-monthly-fields label:first-child { grid-column: 1 / -1; }
