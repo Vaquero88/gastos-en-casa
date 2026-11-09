@@ -10,13 +10,13 @@ const CATEGORIES = {
   Otros: ['Otros'],
 };
 const HOUSEHOLD_ID = 'f8578860-5cab-48bf-8643-6c6ca874036c';
-const PIN_LOGIN_EMAIL = 'f.vaquero88@gmail.com';
 const IS_LOCAL_FILE = window.location.protocol === 'file:';
 const LOCAL_STORAGE_KEY = 'casa-en-comun-local-v1';
 const now = new Date();
 const supabaseClient = window.supabase?.createClient(
   window.CASA_SUPABASE_URL,
   window.CASA_SUPABASE_PUBLISHABLE_KEY,
+  { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } },
 );
 
 let selectedYear = now.getFullYear();
@@ -25,15 +25,10 @@ let activeView = 'inicio';
 let movementFilter = 'todos';
 let movementCategories = null;
 let editingId = null;
-let currentUser = null;
 let currentMember = null;
-let loadedUserId = null;
-let sessionLoadSequence = 0;
 let db = { openingBalance: 0, initialSavings: 0, initialConchiDebt: 0, initialTito: 0, initialSheila: 0, movements: [] };
 
-const authGate = document.getElementById('authGate');
 const appShell = document.getElementById('appShell');
-const authMessage = document.getElementById('authMessage');
 const dialog = document.getElementById('movementDialog');
 const form = document.getElementById('movementForm');
 
@@ -98,22 +93,6 @@ function toast(message, isError = false) {
   element.textContent = message;
   document.body.append(element);
   setTimeout(() => element.remove(), 2800);
-}
-function showAuth(message = '', isError = false) {
-  authGate.hidden = false;
-  appShell.hidden = true;
-  document.getElementById('authForm').hidden = false;
-  document.getElementById('passwordRecoveryForm').hidden = true;
-  authMessage.textContent = message;
-  authMessage.classList.toggle('error', isError);
-}
-function showPasswordRecovery(message = '') {
-  authGate.hidden = false;
-  appShell.hidden = true;
-  document.getElementById('authForm').hidden = true;
-  document.getElementById('passwordRecoveryForm').hidden = false;
-  authMessage.textContent = message;
-  authMessage.classList.remove('error');
 }
 function loadLocalData() {
   try {
@@ -196,38 +175,22 @@ function renderHouseholdBalances() {
   document.getElementById('conchiDetail').textContent = `Deuda inicial: ${euro(db.initialConchiDebt)} · pagos: ${euro(conchiPaid)}`;
 }
 
-async function activateSession(session) {
-  if (!session || !supabaseClient) return;
-  if (loadedUserId === session.user.id && !appShell.hidden) return;
-  const sequence = ++sessionLoadSequence;
+async function loadPublicData() {
+  if (!supabaseClient) {
+    document.getElementById('syncStatusText').textContent = 'No se pudo conectar';
+    toast('No se pudo iniciar la conexión con la base de datos.', true);
+    return;
+  }
   try {
-    const { data: member, error: memberError } = await supabaseClient
-      .from('casa_miembros')
-      .select('id,hogar_id,auth_user_id,email,nombre,rol,activo')
-      .eq('auth_user_id', session.user.id)
-      .eq('activo', true)
-      .maybeSingle();
-    if (memberError) throw memberError;
-    if (!member) {
-      loadedUserId = null;
-      await supabaseClient.auth.signOut();
-      showAuth('Ese correo todavía no tiene acceso a este hogar. Revisa la dirección o pide que te habiliten.', true);
-      return;
-    }
-    const [{ data: household, error: householdError }, { data: rows, error: movementsError }] = await Promise.all([
-      supabaseClient.from('casa_hogares')
-        .select('id,nombre,saldo_inicial,hucha_inicial,deuda_conchi_inicial,aportacion_inicial_tito,aportacion_inicial_sheila')
-        .eq('id', member.hogar_id).single(),
-      supabaseClient.from('casa_movimientos')
-        .select('*').eq('hogar_id', member.hogar_id).eq('archivado', false)
-        .order('periodo_anio').order('periodo_mes').order('fecha'),
-    ]);
+    const { data: household, error: householdError } = await supabaseClient.from('casa_hogares')
+      .select('id,nombre,saldo_inicial,hucha_inicial,deuda_conchi_inicial,aportacion_inicial_tito,aportacion_inicial_sheila')
+      .eq('id', HOUSEHOLD_ID).single();
     if (householdError) throw householdError;
+    const { data: rows, error: movementsError } = await supabaseClient.from('casa_movimientos')
+      .select('*').eq('hogar_id', HOUSEHOLD_ID).eq('archivado', false)
+      .order('periodo_anio').order('periodo_mes').order('fecha');
     if (movementsError) throw movementsError;
-    if (sequence !== sessionLoadSequence) return;
-    currentUser = session.user;
-    currentMember = member;
-    loadedUserId = session.user.id;
+    currentMember = { hogar_id: household.id, nombre: 'Cuenta común', rol: 'admin' };
     db = {
       openingBalance: Number(household.saldo_inicial || 0),
       initialSavings: Number(household.hucha_inicial || 0),
@@ -236,15 +199,15 @@ async function activateSession(session) {
       initialSheila: Number(household.aportacion_inicial_sheila || 0),
       movements: (rows || []).map(mapFromDatabase),
     };
-    document.querySelector('.profile-button strong').textContent = member.nombre;
-    document.querySelector('.profile-button small').textContent = member.rol === 'admin' ? 'Administrador' : 'Solo lectura';
-    document.querySelector('.profile-button .avatar').textContent = (member.nombre || '?').slice(0, 1).toUpperCase();
-    setWriteAccess(member.rol === 'admin');
-    authGate.hidden = true;
-    appShell.hidden = false;
+    document.querySelector('.profile-button strong').textContent = 'Cuenta común';
+    document.querySelector('.profile-button small').textContent = 'Acceso por enlace';
+    document.querySelector('.profile-button .avatar').textContent = '⌂';
+    setWriteAccess(true);
+    document.getElementById('syncStatusText').textContent = 'Conectado a Supabase';
     render();
   } catch (error) {
-    showAuth('No se pudo cargar el hogar. Comprueba la conexión e inténtalo de nuevo.', true);
+    document.getElementById('syncStatusText').textContent = 'No se pudo cargar';
+    toast('No se pudo cargar la cuenta común. Comprueba la conexión.', true);
     console.error('No se pudo cargar Supabase:', error);
   }
 }
@@ -470,7 +433,7 @@ async function applyFixedMonthly(button) {
     persona: template.person || null,
     importe: amount,
     notas: '',
-    creado_por: currentUser?.id || null,
+    creado_por: null,
     plantilla_fijo_id: template.id,
   };
   try {
@@ -635,7 +598,7 @@ async function saveMovement(event) {
     persona: type === 'ingreso' ? document.getElementById('person').value : null,
     importe: amount,
     notas: document.getElementById('notes').value.trim(),
-    creado_por: currentUser.id,
+    creado_por: null,
   };
   if (!date || !periodYear || !periodMonth || !movement.descripcion) return;
   if (IS_LOCAL_FILE && !supabaseClient) {
@@ -690,64 +653,6 @@ function editMovement(id) {
   if (movement) openMovement(movement.type, movement);
 }
 
-document.getElementById('authForm').addEventListener('submit', async event => {
-  event.preventDefault();
-  const pin = document.getElementById('authPassword').value;
-  const button = document.getElementById('signInButton');
-  if (!supabaseClient) { showAuth('No se pudo iniciar la conexión con la base de datos.', true); return; }
-  if (!/^\d{8}$/.test(pin)) { showAuth('Introduce un PIN de 8 cifras.', true); return; }
-  button.disabled = true;
-  authMessage.classList.remove('error');
-  authMessage.textContent = 'Comprobando el acceso…';
-  const { error } = await supabaseClient.auth.signInWithPassword({ email: PIN_LOGIN_EMAIL, password: pin });
-  button.disabled = false;
-  if (error) {
-    authMessage.textContent = 'PIN incorrecto. Si todavía no has configurado el PIN, usa «He olvidado el PIN».';
-    authMessage.classList.add('error');
-    console.warn('No se pudo iniciar sesión.');
-    return;
-  }
-  authMessage.textContent = '';
-});
-
-document.getElementById('forgotPassword').addEventListener('click', async () => {
-  if (!supabaseClient) { showAuth('No se pudo iniciar la conexión con la base de datos.', true); return; }
-  const button = document.getElementById('forgotPassword');
-  button.disabled = true;
-  authMessage.classList.remove('error');
-  authMessage.textContent = 'Enviando instrucciones…';
-  const { error } = await supabaseClient.auth.resetPasswordForEmail(PIN_LOGIN_EMAIL, {
-    redirectTo: IS_LOCAL_FILE
-      ? 'https://vaquero88.github.io/gastos-en-casa/?password_recovery=1'
-      : `${window.location.origin}${window.location.pathname}?password_recovery=1`,
-  });
-  button.disabled = false;
-  if (error) {
-    authMessage.textContent = 'No se pudieron enviar las instrucciones. Inténtalo de nuevo más tarde.';
-    authMessage.classList.add('error');
-  } else {
-    authMessage.textContent = 'Si el usuario existe, recibirá un correo para crear una contraseña nueva.';
-  }
-});
-
-document.getElementById('passwordRecoveryForm').addEventListener('submit', async event => {
-  event.preventDefault();
-  const password = document.getElementById('newPassword').value;
-  if (!/^\d{8}$/.test(password)) { showPasswordRecovery('El PIN debe tener exactamente 8 cifras.'); return; }
-  const button = document.getElementById('saveNewPassword');
-  button.disabled = true;
-  const { error } = await supabaseClient.auth.updateUser({ password });
-  button.disabled = false;
-  if (error) {
-    showPasswordRecovery('No se pudo guardar el PIN. Vuelve a abrir el enlace del correo e inténtalo otra vez.');
-    return;
-  }
-  window.history.replaceState({}, '', `${window.location.origin}${window.location.pathname}`);
-  document.getElementById('newPassword').value = '';
-  authMessage.textContent = 'PIN guardado. Abriendo la cuenta…';
-});
-
-document.getElementById('signOut').onclick = async () => { await supabaseClient.auth.signOut(); };
 document.getElementById('addMovement').onclick = () => openMovement('gasto');
 document.getElementById('emptyAdd').onclick = () => openMovement('gasto');
 document.getElementById('addContribution').onclick = () => openMovement('ingreso');
@@ -796,37 +701,5 @@ document.getElementById('fixedMonthlyList').addEventListener('click', event => {
 });
 document.getElementById('movementSearch').addEventListener('input', () => render());
 
-clientEventListener();
-async function clientEventListener() {
-  if (IS_LOCAL_FILE) {
-    showAuth('Para iniciar sesión y ver los datos compartidos, abre «Abrir Casa en comun local.bat» desde la carpeta de la aplicación.');
-    return;
-  }
-  if (!supabaseClient) {
-    showAuth('Falta la configuración pública de Supabase.', true);
-    return;
-  }
-  supabaseClient.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_OUT') {
-      sessionLoadSequence++;
-      loadedUserId = null;
-      currentUser = null;
-      currentMember = null;
-      db.movements = [];
-      showAuth();
-      return;
-    }
-    if (event === 'PASSWORD_RECOVERY') {
-      showPasswordRecovery('Crea una contraseña nueva para este usuario.');
-      return;
-    }
-    if (session) setTimeout(() => activateSession(session), 0);
-  });
-  const { data, error } = await supabaseClient.auth.getSession();
-  if (error) { showAuth('No se pudo comprobar la sesión.', true); return; }
-  const recoveryInProgress = new URLSearchParams(window.location.search).get('password_recovery') === '1';
-  if (recoveryInProgress) showPasswordRecovery('Crea un PIN nuevo para entrar.');
-  else if (data.session) await activateSession(data.session);
-  else showAuth();
-}
+loadPublicData();
 
