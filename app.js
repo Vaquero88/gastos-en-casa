@@ -189,9 +189,9 @@ function renderHouseholdBalances() {
   const mortgageTemplate = fixedMonthlyTemplates().find(item => item.id === 'hipoteca');
   const mortgageMonthlyAmount = mortgageProgress?.amount || Number(mortgageTemplate?.amount || 0);
   document.getElementById('lifetimeTito').textContent = euro(titoTotal);
-  document.getElementById('lifetimeTitoDetail').textContent = `Inicio: ${euro(db.initialTito)} · desde 2025: ${euro(titoAdds)}`;
+  document.getElementById('lifetimeTitoDetail').textContent = `Inicio: ${euro(db.initialTito)} · desde 2024: ${euro(titoAdds)}`;
   document.getElementById('lifetimeSheila').textContent = euro(sheilaTotal);
-  document.getElementById('lifetimeSheilaDetail').textContent = `Inicio: ${euro(db.initialSheila)} · desde 2025: ${euro(sheilaAdds)}`;
+  document.getElementById('lifetimeSheilaDetail').textContent = `Inicio: ${euro(db.initialSheila)} · desde 2024: ${euro(sheilaAdds)}`;
   document.getElementById('differenceTito').textContent = `${difference >= 0 ? '+' : '−'}${euro(Math.abs(difference))}`;
   document.getElementById('differenceSheila').textContent = `${difference <= 0 ? '+' : '−'}${euro(Math.abs(difference))}`;
   document.getElementById('differenceCaption').textContent = difference === 0
@@ -553,7 +553,7 @@ async function applyFixedMonthly(button) {
   const amount = Number(rawAmount);
   if (!date) { toast('Indica la fecha del movimiento.', true); return; }
   if (!description) { toast('Escribe una descripción.', true); return; }
-  if (rawAmount === '' || !Number.isFinite(amount) || (template.type === 'gasto' && amount === 0) || (template.type === 'ingreso' && amount < 0)) {
+  if (rawAmount === '' || !Number.isFinite(amount) || (template.type === 'ingreso' && amount < 0)) {
     toast('Indica un importe válido.', true); return;
   }
   const previousMovements = db.movements.map(item => ({ ...item }));
@@ -618,7 +618,7 @@ async function saveFixedMonthlyEdit(button) {
   const amount = Number(rawAmount);
   if (!date) { toast('Indica la fecha del movimiento.', true); return; }
   if (!description) { toast('Escribe una descripción.', true); return; }
-  if (rawAmount === '' || !Number.isFinite(amount) || (template.type === 'gasto' && amount === 0) || (template.type === 'ingreso' && amount < 0)) {
+  if (rawAmount === '' || !Number.isFinite(amount) || (template.type === 'ingreso' && amount < 0)) {
     toast('Indica un importe válido.', true); return;
   }
   const previousMovements = db.movements.map(item => ({ ...item }));
@@ -723,7 +723,7 @@ async function saveMovement(event) {
   if (currentMember?.rol !== 'admin') return;
   const type = document.getElementById('movementType').value;
   const amount = Number(document.getElementById('amount').value);
-  if (!Number.isFinite(amount) || (type === 'gasto' && amount === 0) || (type === 'ingreso' && amount < 0)) return;
+  if (!Number.isFinite(amount) || (type === 'ingreso' && amount < 0)) return;
   const date = document.getElementById('date').value;
   const periodValue = document.getElementById('periodMonth').value;
   const [periodYear, periodMonth] = periodValue.split('-').map(Number);
