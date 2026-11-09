@@ -18,9 +18,9 @@
     <div class="auth-card">
       <span class="brand-mark auth-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3.5 11 8.5-7 8.5 7v9a.8.8 0 0 1-.8.8h-5.1v-6.2H9.4v6.2H4.3a.8.8 0 0 1-.8-.8z"/><path d="M8 7.4V4.8h3"/></svg></span>
       <p class="dialog-kicker">CASA EN COMÚN</p><h1>Vuestras cuentas,<br>solo para vosotros.</h1>
-      <p class="auth-description">Entra con tu usuario y contraseña para abrir la cuenta familiar.</p>
-      <form id="authForm"><label for="authEmail">Usuario (correo electrónico)</label><input id="authEmail" type="email" autocomplete="username" placeholder="nombre@correo.com" required><label for="authPassword">Contraseña</label><input id="authPassword" type="password" autocomplete="current-password" required><button id="signInButton" class="primary-button" type="submit">Entrar <span>→</span></button><button id="forgotPassword" class="auth-link-button" type="button">He olvidado mi contraseña</button></form>
-      <form id="passwordRecoveryForm" hidden><label for="newPassword">Nueva contraseña</label><input id="newPassword" type="password" autocomplete="new-password" minlength="8" required><button id="saveNewPassword" class="primary-button" type="submit">Guardar contraseña</button></form>
+      <p class="auth-description">Introduce el PIN para abrir la cuenta familiar.</p>
+      <form id="authForm"><label for="authPassword">PIN</label><input id="authPassword" type="password" inputmode="numeric" autocomplete="current-password" pattern="[0-9]{8}" minlength="8" maxlength="8" aria-label="PIN de ocho cifras" required><button id="signInButton" class="primary-button" type="submit">Entrar <span>→</span></button><button id="forgotPassword" class="auth-link-button" type="button">He olvidado el PIN</button></form>
+      <form id="passwordRecoveryForm" hidden><label for="newPassword">Nuevo PIN</label><input id="newPassword" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{8}" minlength="8" maxlength="8" aria-label="Nuevo PIN de ocho cifras" required><button id="saveNewPassword" class="primary-button" type="submit">Guardar PIN</button></form>
       <p class="auth-message" id="authMessage" aria-live="polite"></p><p class="auth-footnote">Los datos de ingresos y gastos solo se muestran a los miembros autorizados.</p>
     </div>
   </section>
