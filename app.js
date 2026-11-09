@@ -52,10 +52,9 @@ function remainingTerm(months) {
   return `${remainingMonths} ${remainingMonths === 1 ? 'mes' : 'meses'}`;
 }
 function latestLoanInstallment(subcategory, totalInstallments) {
-  const selectedPeriod = monthKey(selectedYear, selectedMonth + 1);
+  // Debt cards show the latest recorded installment, regardless of the month being viewed.
   return db.movements
-    .filter(item => item.type === 'gasto' && item.category === 'Fijos' && item.subcategory === subcategory
-      && monthKey(item.periodYear, item.periodMonth) <= selectedPeriod)
+    .filter(item => item.type === 'gasto' && item.category === 'Fijos' && item.subcategory === subcategory)
     .map(item => {
       const match = item.description.match(/(\d{1,3})\s+de\s+(\d{1,3})/i);
       if (!match || Number(match[2]) !== totalInstallments) return null;
@@ -190,9 +189,9 @@ function renderHouseholdBalances() {
   const mortgageTemplate = fixedMonthlyTemplates().find(item => item.id === 'hipoteca');
   const mortgageMonthlyAmount = mortgageProgress?.amount || Number(mortgageTemplate?.amount || 0);
   document.getElementById('lifetimeTito').textContent = euro(titoTotal);
-  document.getElementById('lifetimeTitoDetail').textContent = `Inicio: ${euro(db.initialTito)} · desde 2026: ${euro(titoAdds)}`;
+  document.getElementById('lifetimeTitoDetail').textContent = `Inicio: ${euro(db.initialTito)} · desde 2025: ${euro(titoAdds)}`;
   document.getElementById('lifetimeSheila').textContent = euro(sheilaTotal);
-  document.getElementById('lifetimeSheilaDetail').textContent = `Inicio: ${euro(db.initialSheila)} · desde 2026: ${euro(sheilaAdds)}`;
+  document.getElementById('lifetimeSheilaDetail').textContent = `Inicio: ${euro(db.initialSheila)} · desde 2025: ${euro(sheilaAdds)}`;
   document.getElementById('differenceTito').textContent = `${difference >= 0 ? '+' : '−'}${euro(Math.abs(difference))}`;
   document.getElementById('differenceSheila').textContent = `${difference <= 0 ? '+' : '−'}${euro(Math.abs(difference))}`;
   document.getElementById('differenceCaption').textContent = difference === 0
