@@ -1,6 +1,6 @@
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const CATEGORIES = {
-  Fijos: ['Electricidad','Agua','Gas','Comunidad','Comunicaciones','TV','Seguros','Alarma','Ahorros Hucha','Préstamo Conchi','IBI y basura','Hipoteca','Financiaciones','Otros fijos'],
+  Fijos: ['Electricidad','Agua','Gas','Comunidad','Comunicaciones','TV','Seguros','Alarma','Ahorros Hucha','Préstamo Conchi','Préstamo Carmen','IBI y basura','Hipoteca','Financiaciones','Otros fijos'],
   Comida: ['Supermercado','Comida domicilio','Otros comida'],
   Ocio: ['Viajes','Tomar algo','Otros ocio'],
   Hogar: ['Mobiliario','Electrodomésticos','Mantenimiento','Otros hogar'],
@@ -190,9 +190,9 @@ function renderHouseholdBalances() {
   const mortgageTemplate = fixedMonthlyTemplates().find(item => item.id === 'hipoteca');
   const mortgageMonthlyAmount = mortgageProgress?.amount || Number(mortgageTemplate?.amount || 0);
   document.getElementById('lifetimeTito').textContent = euro(titoTotal);
-  document.getElementById('lifetimeTitoDetail').textContent = `Inicio: ${euro(db.initialTito)} · desde 2024: ${euro(titoAdds)}`;
+  document.getElementById('lifetimeTitoDetail').textContent = `Inicio: ${euro(db.initialTito)} · desde 2023: ${euro(titoAdds)}`;
   document.getElementById('lifetimeSheila').textContent = euro(sheilaTotal);
-  document.getElementById('lifetimeSheilaDetail').textContent = `Inicio: ${euro(db.initialSheila)} · desde 2024: ${euro(sheilaAdds)}`;
+  document.getElementById('lifetimeSheilaDetail').textContent = `Inicio: ${euro(db.initialSheila)} · desde 2023: ${euro(sheilaAdds)}`;
   document.getElementById('differenceTito').textContent = `${difference >= 0 ? '+' : '−'}${euro(Math.abs(difference))}`;
   document.getElementById('differenceSheila').textContent = `${difference <= 0 ? '+' : '−'}${euro(Math.abs(difference))}`;
   document.getElementById('differenceCaption').textContent = difference === 0
