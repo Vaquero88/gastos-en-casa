@@ -130,6 +130,7 @@ body { background: #f4f0f8; color: #292438; }
 .toast { background: #2d263e; }
 
 .auth-gate { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: radial-gradient(circle at 15% 15%, #e8ddf3 0, transparent 34%), #f4f0f8; }
+#authGate[hidden], #appShell[hidden] { display: none !important; }
 .auth-card { width: min(420px, 100%); padding: 35px; border: 1px solid #e7dfef; border-radius: 18px; background: #fff; box-shadow: 0 18px 55px rgba(47, 34, 66, .1); }
 .auth-mark { width: 47px; height: 47px; margin-bottom: 24px; background: #eee7f7; color: #7252a0; }
 .auth-mark svg { width: 24px; }
@@ -146,6 +147,8 @@ body { background: #f4f0f8; color: #292438; }
 .auth-message { min-height: 17px; margin: 13px 0 0; color: #654788; font-size: 10px; line-height: 1.5; }
 .auth-message.error { color: #b85355; }
 .auth-footnote { padding-top: 14px; border-top: 1px solid #f0ecf4; color: #918b9b; font-size: 9px; line-height: 1.6; }
+.logout-button { border: 1px solid #e4deeb; border-radius: 7px; padding: 6px 9px; background: #fff; color: #66577e; font-size: 9px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.logout-button:hover { background: #f5f1fa; border-color: #d6c9e5; }
 .field-hint { color: #938b9f; font-size: 8px; font-weight: 400; line-height: 1.4; }
 .transaction-amount.refund { color: #43847b; }
 .profile-button[aria-disabled="true"] { cursor: default; }
@@ -243,5 +246,4 @@ body { background: #f4f0f8; color: #292438; }
 .backup-option:hover { border-color: #c9b8db; background: #f8f5fb; }
 .backup-option strong { font-size: 11px; }
 .backup-option small { color: #817c8c; font-size: 9px; }
-@media (max-width: 720px) { .top-actions { gap: 8px; } .history-actions { gap: 3px; } .history-button { padding: 5px 6px; font-size: 8px; } .sidebar-bottom { display: none; } .mobile-backup-trigger { display: flex; border: 0; background: transparent; cursor: pointer; } }
-
+@media (max-width: 720px) { .top-actions { gap: 8px; } .history-actions { gap: 3px; } .history-button { padding: 5px 6px; font-size: 8px; } .logout-button { padding: 5px 7px; font-size: 8px; } .sidebar-bottom { display: none; } .mobile-backup-trigger { display: flex; border: 0; background: transparent; cursor: pointer; } }
