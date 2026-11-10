@@ -323,7 +323,7 @@ function forecastExpenses(balance) {
     if (ibiPending) expenses.push({ label: 'IBI y basura', amount: ibiPending, note: 'Cuota pendiente: 67,61 €.' });
     if (communicationsPending) expenses.push({ label: 'Comunicaciones (Vodafone / Lowi)', amount: communicationsPending, note: 'Factura pendiente: 28,00 €.' });
     if (foodPending) expenses.push({ label: 'Comida', amount: foodPending, note: `Incluye unos 175,00 € más de comida; ya gastados: ${euro(foodPaid)}.` });
-    const incomes = pendingIncomeTemplates(fixedMonthlyTemplates(forecastYear, forecastMonth), currentPeriodMovements, previousMovements);
+    const incomes = pendingIncomeTemplates(fixedMonthlyTemplates(forecastYear, forecastMonth), currentPeriodMovements);
     const expenseTotal = expenses.reduce((sum, item) => sum + item.amount, 0);
     const incomeTotal = incomes.reduce((sum, item) => sum + item.amount, 0);
     return { expenses, incomes, expenseTotal, incomeTotal, projectedBalance: balance - expenseTotal + incomeTotal };
@@ -364,18 +364,14 @@ function forecastExpenses(balance) {
     const pending = Math.max(0, expected - alreadyPaid);
     if (pending) expenses.push({ label: category, amount: pending, note: `Gasto variable estimado para ${MONTHS[forecastMonth].toLowerCase()}, menos lo ya registrado.` });
   });
-  const incomes = pendingIncomeTemplates(fixedMonthlyTemplates(forecastYear, forecastMonth), currentPeriodMovements, previousMovements);
+  const incomes = pendingIncomeTemplates(fixedMonthlyTemplates(forecastYear, forecastMonth), currentPeriodMovements);
   const expenseTotal = expenses.reduce((sum, item) => sum + item.amount, 0);
   const incomeTotal = incomes.reduce((sum, item) => sum + item.amount, 0);
   return { expenses, incomes, expenseTotal, incomeTotal, projectedBalance: balance - expenseTotal + incomeTotal };
 }
-function pendingIncomeTemplates(templates, currentPeriodMovements, previousMovements) {
+function pendingIncomeTemplates(templates, currentPeriodMovements) {
   return templates.filter(template => template.type === 'ingreso').flatMap(template => {
-    const byYear = new Map();
-    previousMovements.filter(item => item.type === 'ingreso' && matchesFixedTemplateMovement(item, template))
-      .forEach(item => byYear.set(item.periodYear, (byYear.get(item.periodYear) || 0) + item.amount));
-    const historicalAverage = recentYearAverage(byYear);
-    const expected = historicalAverage !== null ? historicalAverage : Number(template.amount) || 0;
+    const expected = Number(template.amount) || 0;
     const alreadyPaid = currentPeriodMovements.filter(item => matchesFixedTemplateMovement(item, template))
       .reduce((sum, item) => sum + item.amount, 0);
     const pending = Math.max(0, expected - alreadyPaid);
