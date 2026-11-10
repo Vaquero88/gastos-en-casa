@@ -41,6 +41,13 @@ body { background: #f4f0f8; color: #292438; }
 .profile-button small { color: #b8b0c4; }
 .avatar-tito { background: #d5ebe7; color: #356f69; }
 .more { color: #b8b0c4; }
+.sidebar-backup-button { display: flex; align-items: center; gap: 11px; width: 100%; margin: 0 0 5px; padding: 10px 8px; border: 1px solid #4a4257; border-radius: 9px; background: #393148; color: #f7f3fb; text-align: left; cursor: pointer; }
+.sidebar-backup-button:hover { background: #443a57; }
+.sidebar-backup-button > span:first-child { display: grid; place-items: center; width: 29px; height: 29px; border-radius: 8px; background: #514263; color: #eee5ff; font-size: 16px; }
+.sidebar-backup-button strong, .sidebar-backup-button small { display: block; }
+.sidebar-backup-button strong { font-size: 10px; }
+.sidebar-backup-button small { margin-top: 3px; color: #b8b0c4; font-size: 8px; }
+.mobile-backup-trigger { display: none; }
 
 .main-content { color: #292438; }
 .topbar { border-bottom-color: #e5deed; }
@@ -227,5 +234,14 @@ body { background: #f4f0f8; color: #292438; }
 .history-button:disabled { color: #b6b0bf; background: #faf9fb; cursor: not-allowed; opacity: .75; }
 .backup-button { display: inline-flex; align-items: center; gap: 5px; border: 1px solid #d6c9e5; border-radius: 7px; padding: 6px 9px; background: #f5f1fa; color: #66577e; font-size: 9px; font-weight: 700; white-space: nowrap; cursor: pointer; }
 .backup-button:hover { background: #ebe3f4; border-color: #c3afd8; }
-@media (max-width: 720px) { .top-actions { gap: 8px; } .history-actions { gap: 3px; } .history-button { padding: 5px 6px; font-size: 8px; } .backup-button { padding: 5px 7px; font-size: 8px; } }
+.backup-dialog { width: min(390px, calc(100vw - 28px)); border: 0; border-radius: 14px; padding: 0; color: #292438; box-shadow: 0 20px 75px rgba(26, 20, 40, .24); }
+.backup-dialog::backdrop { background: rgba(33, 27, 43, .42); backdrop-filter: blur(3px); }
+.backup-dialog-content { padding: 22px; }
+.backup-dialog-content > p { margin: 12px 0 16px; color: #817c8c; font-size: 11px; line-height: 1.5; }
+.backup-dialog-actions { display: grid; gap: 9px; }
+.backup-option { display: grid; gap: 4px; width: 100%; padding: 12px; border: 1px solid #e8e2ef; border-radius: 9px; background: #fff; color: #3d354b; text-align: left; }
+.backup-option:hover { border-color: #c9b8db; background: #f8f5fb; }
+.backup-option strong { font-size: 11px; }
+.backup-option small { color: #817c8c; font-size: 9px; }
+@media (max-width: 720px) { .top-actions { gap: 8px; } .history-actions { gap: 3px; } .history-button { padding: 5px 6px; font-size: 8px; } .sidebar-bottom { display: none; } .mobile-backup-trigger { display: flex; border: 0; background: transparent; cursor: pointer; } }
 
