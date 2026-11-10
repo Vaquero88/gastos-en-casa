@@ -1,0 +1,2 @@
+[functions.casa-api]
+verify_jwt = false
