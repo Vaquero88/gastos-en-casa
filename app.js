@@ -190,11 +190,85 @@ async function downloadBackup() {
     document.body.append(link);
     link.click();
     link.remove();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
     toast(`Copia descargada con ${movements.length} movimientos.`);
   } catch (error) {
     console.error('No se pudo crear la copia de seguridad:', error);
     toast('No se pudo crear la copia. Comprueba la conexión e inténtalo de nuevo.', true);
+  }
+}
+function validateBackup(backup) {
+  if (!backup || backup.format !== 'casa-en-comun-backup' || backup.version !== 1) throw new Error('El archivo no es una copia válida de Casa en común.');
+  const balanceKeys = ['openingBalance', 'initialSavings', 'initialConchiDebt', 'initialTito', 'initialSheila'];
+  if (!backup.balances || balanceKeys.some(key => !Number.isFinite(Number(backup.balances[key])))) throw new Error('La copia no contiene todos los saldos iniciales.');
+  if (!Array.isArray(backup.movements)) throw new Error('La copia no contiene una lista de movimientos válida.');
+  const ids = new Set();
+  for (const item of backup.movements) {
+    if (!item || typeof item.id !== 'string' || !item.id || ids.has(item.id)) throw new Error('La copia contiene movimientos con identificadores inválidos o repetidos.');
+    ids.add(item.id);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(item.date || '') || !Number.isInteger(Number(item.periodYear)) || !Number.isInteger(Number(item.periodMonth)) || Number(item.periodMonth) < 1 || Number(item.periodMonth) > 12) throw new Error('La copia contiene un movimiento con fecha o mes no válidos.');
+    if (!['ingreso', 'gasto'].includes(item.type) || !Number.isFinite(Number(item.amount)) || typeof item.description !== 'string' || typeof item.category !== 'string') throw new Error('La copia contiene un movimiento con datos no válidos.');
+  }
+  return backup;
+}
+async function restoreBackupData(backup) {
+  const balances = {
+    openingBalance: Number(backup.balances.openingBalance),
+    initialSavings: Number(backup.balances.initialSavings),
+    initialConchiDebt: Number(backup.balances.initialConchiDebt),
+    initialTito: Number(backup.balances.initialTito),
+    initialSheila: Number(backup.balances.initialSheila),
+  };
+  if (currentMember?.hogar_id && supabaseClient) {
+    const { error: householdError } = await supabaseClient.from('casa_hogares').update({
+      saldo_inicial: balances.openingBalance,
+      hucha_inicial: balances.initialSavings,
+      deuda_conchi_inicial: balances.initialConchiDebt,
+      aportacion_inicial_tito: balances.initialTito,
+      aportacion_inicial_sheila: balances.initialSheila,
+    }).eq('id', currentMember.hogar_id);
+    if (householdError) throw householdError;
+    const rows = backup.movements.map(item => {
+      const row = movementToDatabase(item);
+      row.archivado = Boolean(item.archived);
+      return row;
+    });
+    for (let index = 0; index < rows.length; index += 500) {
+      const { error } = await supabaseClient.from('casa_movimientos').upsert(rows.slice(index, index + 500), { onConflict: 'id' });
+      if (error) throw error;
+    }
+    const backupIds = new Set(rows.map(row => row.id));
+    const existingRows = await fetchAllMovements(currentMember.hogar_id, true);
+    const staleIds = existingRows.map(row => row.id).filter(id => !backupIds.has(id));
+    for (let index = 0; index < staleIds.length; index += 500) {
+      const { error } = await supabaseClient.from('casa_movimientos').update({ archivado: true })
+        .eq('hogar_id', currentMember.hogar_id).in('id', staleIds.slice(index, index + 500));
+      if (error) throw error;
+    }
+  } else if (IS_LOCAL_FILE) {
+    db = { ...db, ...balances };
+    db.movements = backup.movements.filter(item => !item.archived).map(item => ({ ...item }));
+    saveLocalData();
+  } else {
+    throw new Error('No se ha podido acceder a los datos de la cuenta.');
+  }
+  db = { ...db, ...balances, movements: backup.movements.filter(item => !item.archived).map(item => ({ ...item })) };
+  undoHistory = [];
+  redoHistory = [];
+  render();
+}
+async function handleBackupRestore(file) {
+  if (!file) return;
+  try {
+    const backup = validateBackup(JSON.parse(await file.text()));
+    if (currentMember?.hogar_id && backup.householdId && backup.householdId !== currentMember.hogar_id) throw new Error('Esta copia pertenece a otra cuenta común.');
+    const accepted = window.confirm(`Se restaurarán ${backup.movements.length} movimientos y sus saldos iniciales. Los datos actuales que no estén en la copia quedarán archivados. ¿Quieres continuar?`);
+    if (!accepted) return;
+    await restoreBackupData(backup);
+    toast(`Copia restaurada con ${backup.movements.length} movimientos.`);
+  } catch (error) {
+    console.error('No se pudo restaurar la copia:', error);
+    toast(error.message || 'No se pudo restaurar la copia. Comprueba el archivo y la conexión.', true);
   }
 }
 function forCurrentPeriod(movement) {
@@ -931,7 +1005,23 @@ document.getElementById('fixedMonthlyList').addEventListener('click', event => {
   else if (saveButton) saveFixedMonthlyEdit(saveButton);
 });
 document.getElementById('movementSearch').addEventListener('input', () => render());
-document.getElementById('backupAction').addEventListener('click', downloadBackup);
+const backupDialog = document.getElementById('backupDialog');
+function openBackupDialog() { backupDialog.showModal(); }
+document.getElementById('backupAction').addEventListener('click', openBackupDialog);
+document.getElementById('mobileBackupAction').addEventListener('click', openBackupDialog);
+document.getElementById('closeBackupDialog').addEventListener('click', () => backupDialog.close());
+document.getElementById('downloadBackupAction').addEventListener('click', () => {
+  backupDialog.close();
+  downloadBackup();
+});
+document.getElementById('restoreBackupAction').addEventListener('click', () => {
+  backupDialog.close();
+  document.getElementById('backupFileInput').click();
+});
+document.getElementById('backupFileInput').addEventListener('change', async event => {
+  await handleBackupRestore(event.target.files?.[0]);
+  event.target.value = '';
+});
 
 loadPublicData();
 
