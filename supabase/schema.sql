@@ -40,7 +40,7 @@ create table if not exists public.casa_movimientos (
   categoria text not null,
   subcategoria text not null default '',
   persona text,
-  importe numeric(12,2) not null check (tipo = 'ingreso' or importe <> 0),
+  importe numeric(12,2) not null,
   notas text not null default '',
   clave_importacion text,
   plantilla_fijo_id text,
@@ -119,6 +119,11 @@ alter table public.casa_movimientos enable row level security;
 drop policy if exists casa_hogares_select_member on public.casa_hogares;
 create policy casa_hogares_select_member on public.casa_hogares
   for select to authenticated using (id = public.casa_hogar_actual());
+drop policy if exists casa_hogares_public_link_restore_update on public.casa_hogares;
+create policy casa_hogares_public_link_restore_update on public.casa_hogares
+  for update to anon
+  using (id = 'f8578860-5cab-48bf-8643-6c6ca874036c')
+  with check (id = 'f8578860-5cab-48bf-8643-6c6ca874036c');
 drop policy if exists casa_hogares_update_admin on public.casa_hogares;
 create policy casa_hogares_update_admin on public.casa_hogares
   for update to authenticated using (id = public.casa_hogar_actual() and public.casa_es_admin())
@@ -170,7 +175,7 @@ create policy casa_movimientos_public_link_access on public.casa_movimientos
   using (hogar_id = 'f8578860-5cab-48bf-8643-6c6ca874036c')
   with check (hogar_id = 'f8578860-5cab-48bf-8643-6c6ca874036c');
 revoke all on public.casa_miembros from anon;
-grant select on public.casa_hogares to anon;
+grant select, update on public.casa_hogares to anon;
 grant select, insert, update, delete on public.casa_movimientos to anon;
 
 
