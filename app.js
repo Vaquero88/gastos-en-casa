@@ -27,6 +27,7 @@ let movementCategories = null;
 let categoryPeriodMode = 'month';
 let editingId = null;
 let currentMember = null;
+let dataLoaded = false;
 let undoHistory = [];
 let redoHistory = [];
 let db = { openingBalance: 0, initialSavings: 0, initialConchiDebt: 0, initialTito: 0, initialSheila: 0, movements: [] };
@@ -152,6 +153,50 @@ function mapFromDatabase(row) {
     createdAt: Date.parse(row.created_at || row.fecha),
   };
 }
+function localDateStamp(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+async function downloadBackup() {
+  if (!dataLoaded) {
+    toast('Espera a que se carguen los datos antes de guardar la copia.', true);
+    return;
+  }
+  try {
+    const movements = currentMember?.hogar_id
+      ? (await fetchAllMovements(currentMember.hogar_id, true)).map(row => ({ ...mapFromDatabase(row), archived: Boolean(row.archivado) }))
+      : db.movements.map(item => ({ ...item, archived: Boolean(item.archived) }));
+    const backup = {
+      format: 'casa-en-comun-backup',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      householdId: currentMember?.hogar_id || null,
+      balances: {
+        openingBalance: db.openingBalance,
+        initialSavings: db.initialSavings,
+        initialConchiDebt: db.initialConchiDebt,
+        initialTito: db.initialTito,
+        initialSheila: db.initialSheila,
+      },
+      movements,
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `casa-en-comun-copia-${localDateStamp()}.json`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    toast(`Copia descargada con ${movements.length} movimientos.`);
+  } catch (error) {
+    console.error('No se pudo crear la copia de seguridad:', error);
+    toast('No se pudo crear la copia. Comprueba la conexión e inténtalo de nuevo.', true);
+  }
+}
 function forCurrentPeriod(movement) {
   return movement.periodYear === selectedYear && movement.periodMonth === selectedMonth + 1;
 }
@@ -233,6 +278,7 @@ async function loadPublicData() {
       initialSheila: Number(household.aportacion_inicial_sheila || 0),
       movements: (rows || []).map(mapFromDatabase),
     };
+    dataLoaded = true;
     document.querySelector('.profile-button strong').textContent = 'Cuenta común';
     document.querySelector('.profile-button small').textContent = 'Acceso por enlace';
     document.querySelector('.profile-button .avatar').textContent = '⌂';
@@ -245,13 +291,13 @@ async function loadPublicData() {
     console.error('No se pudo cargar Supabase:', error);
   }
 }
-async function fetchAllMovements(householdId) {
+async function fetchAllMovements(householdId, includeArchived = false) {
   const pageSize = 1000;
   const rows = [];
   for (let offset = 0; ; offset += pageSize) {
-    const { data, error } = await supabaseClient.from('casa_movimientos')
-      .select('*').eq('hogar_id', householdId).eq('archivado', false)
-      .order('periodo_anio').order('periodo_mes').order('fecha').order('id')
+    let query = supabaseClient.from('casa_movimientos').select('*').eq('hogar_id', householdId);
+    if (!includeArchived) query = query.eq('archivado', false);
+    const { data, error } = await query.order('periodo_anio').order('periodo_mes').order('fecha').order('id')
       .range(offset, offset + pageSize - 1);
     if (error) throw error;
     rows.push(...(data || []));
@@ -885,6 +931,7 @@ document.getElementById('fixedMonthlyList').addEventListener('click', event => {
   else if (saveButton) saveFixedMonthlyEdit(saveButton);
 });
 document.getElementById('movementSearch').addEventListener('input', () => render());
+document.getElementById('backupAction').addEventListener('click', downloadBackup);
 
 loadPublicData();
 
