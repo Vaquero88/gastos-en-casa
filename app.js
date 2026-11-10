@@ -282,13 +282,42 @@ function recentYearAverage(yearTotals) {
   return recent.length ? recent.reduce((sum, amount) => sum + amount, 0) / recent.length : null;
 }
 function forecastExpenses(balance) {
-  const monthNumber = selectedMonth + 1;
-  const previousMovements = db.movements.filter(item => !item.archived && item.periodMonth === monthNumber && item.periodYear < selectedYear);
-  const fixedTemplates = fixedMonthlyTemplates().filter(template => template.type === 'gasto');
+  const forecastDate = new Date();
+  const forecastYear = forecastDate.getFullYear();
+  const forecastMonth = forecastDate.getMonth();
+  const monthNumber = forecastMonth + 1;
+  const inForecastPeriod = item => item.periodYear === forecastYear && item.periodMonth === monthNumber;
+  const currentPeriodMovements = db.movements.filter(item => !item.archived && inForecastPeriod(item));
+  const previousMovements = db.movements.filter(item => !item.archived && item.periodMonth === monthNumber && item.periodYear < forecastYear);
+
+  // November 2026 has two outstanding electricity bills and known remaining costs supplied by the user.
+  if (forecastYear === 2026 && monthNumber === 11) {
+    const electricity = currentPeriodMovements.filter(item => item.type === 'gasto' && item.category === 'Fijos'
+      && item.subcategory === 'Electricidad' && item.amount > 0);
+    const energyFor = (fullMonth, shortMonth) => electricity.filter(item => {
+      const description = normalizeFixedDescription(item.description);
+      return description.includes(fullMonth) || description.includes(shortMonth);
+    }).reduce((sum, item) => sum + item.amount, 0);
+    const octoberPaid = energyFor('octubre', 'oct');
+    const novemberPaid = energyFor('noviembre', 'nov');
+    const namedPaid = octoberPaid + novemberPaid;
+    const genericPaid = Math.max(0, electricity.reduce((sum, item) => sum + item.amount, 0) - namedPaid);
+    const unpaidElectricity = Math.max(0, 55 - octoberPaid) + Math.max(0, 60 - novemberPaid - genericPaid);
+    const ibiPaid = currentPeriodMovements.filter(item => item.type === 'gasto' && item.category === 'Fijos'
+      && item.subcategory === 'IBI y basura' && item.amount > 0).reduce((sum, item) => sum + item.amount, 0);
+    const communicationsPaid = currentPeriodMovements.filter(item => item.type === 'gasto' && item.category === 'Fijos'
+      && item.subcategory === 'Comunicaciones' && item.amount > 0).reduce((sum, item) => sum + item.amount, 0);
+    const foodPaid = currentPeriodMovements.filter(item => item.type === 'gasto' && item.category === 'Comida')
+      .reduce((sum, item) => sum + item.amount, 0);
+    const pending = unpaidElectricity + Math.max(0, 67.61 - ibiPaid) + Math.max(0, 28 - communicationsPaid) + Math.max(0, 321 - foodPaid);
+    return { pending, projectedBalance: balance - pending };
+  }
+
+  const fixedTemplates = fixedMonthlyTemplates(forecastYear, forecastMonth).filter(template => template.type === 'gasto');
   let pendingFixed = 0;
 
   fixedTemplates.forEach(template => {
-    const alreadyApplied = db.movements.some(item => forCurrentPeriod(item) && matchesFixedTemplateMovement(item, template));
+    const alreadyApplied = db.movements.some(item => !item.archived && inForecastPeriod(item) && matchesFixedTemplateMovement(item, template));
     if (alreadyApplied) return;
     const byYear = new Map();
     previousMovements.filter(item => item.type === 'gasto' && matchesFixedTemplateMovement(item, template))
@@ -303,7 +332,7 @@ function forecastExpenses(balance) {
   previousMovements.filter(item => item.type === 'gasto' && item.category !== 'Fijos')
     .forEach(item => variableByYear.set(item.periodYear, (variableByYear.get(item.periodYear) || 0) + item.amount));
   const expectedVariableTotal = recentYearAverage(variableByYear) || 0;
-  const variableAlreadyPaid = db.movements.filter(forCurrentPeriod)
+  const variableAlreadyPaid = currentPeriodMovements
     .filter(item => item.type === 'gasto' && item.category !== 'Fijos')
     .reduce((sum, item) => sum + item.amount, 0);
   const pendingVariable = Math.max(0, expectedVariableTotal - variableAlreadyPaid);
@@ -485,7 +514,8 @@ function render() {
   document.getElementById('incomeValue').textContent = euro(result.income);
   document.getElementById('expenseValue').textContent = euro(result.expense);
   document.getElementById('netValue').textContent = euro(result.income - result.expense);
-  document.getElementById('balanceCaption').textContent = `Gastos aprox. que quedan en ${monthName().toLowerCase()}: ${euro(forecast.pending)}`;
+  const forecastMonthName = MONTHS[new Date().getMonth()].toLowerCase();
+  document.getElementById('balanceCaption').textContent = `Gastos aprox. que quedan en ${forecastMonthName}: ${euro(forecast.pending)}`;
   document.getElementById('projectedBalance').textContent = euro(forecast.projectedBalance);
   document.getElementById('expenseCount').textContent = `${result.expenses.length} ${result.expenses.length === 1 ? 'movimiento' : 'movimientos'}`;
   renderHouseholdBalances();
