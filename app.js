@@ -260,6 +260,7 @@ async function restoreBackupData(backup) {
 async function handleBackupRestore(file) {
   if (!file) return;
   try {
+    if (!dataLoaded) throw new Error('Espera a que se carguen los datos antes de restaurar una copia.');
     const backup = validateBackup(JSON.parse(await file.text()));
     if (currentMember?.hogar_id && backup.householdId && backup.householdId !== currentMember.hogar_id) throw new Error('Esta copia pertenece a otra cuenta común.');
     const accepted = window.confirm(`Se restaurarán ${backup.movements.length} movimientos y sus saldos iniciales. Los datos actuales que no estén en la copia quedarán archivados. ¿Quieres continuar?`);
