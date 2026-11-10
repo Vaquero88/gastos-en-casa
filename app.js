@@ -292,84 +292,58 @@ function forecastExpenses(balance) {
   const monthNumber = forecastMonth + 1;
   const inForecastPeriod = item => item.periodYear === forecastYear && item.periodMonth === monthNumber;
   const currentPeriodMovements = db.movements.filter(item => !item.archived && inForecastPeriod(item));
-  const previousMovements = db.movements.filter(item => !item.archived && item.periodMonth === monthNumber && item.periodYear < forecastYear);
-
-  // November 2026 has two outstanding electricity bills and known remaining costs supplied by the user.
-  if (forecastYear === 2026 && monthNumber === 11) {
-    const expenses = [];
-    const electricity = currentPeriodMovements.filter(item => item.type === 'gasto' && item.category === 'Fijos'
-      && item.subcategory === 'Electricidad' && item.amount > 0);
-    const energyFor = (fullMonth, shortMonth) => electricity.filter(item => {
-      const description = normalizeFixedDescription(item.description);
-      return description.includes(fullMonth) || description.includes(shortMonth);
-    }).reduce((sum, item) => sum + item.amount, 0);
-    const octoberPaid = energyFor('octubre', 'oct');
-    const novemberPaid = energyFor('noviembre', 'nov');
-    const namedPaid = octoberPaid + novemberPaid;
-    const genericPaid = Math.max(0, electricity.reduce((sum, item) => sum + item.amount, 0) - namedPaid);
-    const octoberPending = Math.max(0, 55 - octoberPaid);
-    const novemberPending = Math.max(0, 60 - novemberPaid - genericPaid);
-    if (octoberPending) expenses.push({ label: 'Luz atrasada de octubre', amount: octoberPending, note: 'Importe aproximado: 55,00 €.' });
-    if (novemberPending) expenses.push({ label: 'Luz de noviembre', amount: novemberPending, note: 'Importe aproximado: 60,00 €.' });
-    const ibiPaid = currentPeriodMovements.filter(item => item.type === 'gasto' && item.category === 'Fijos'
-      && item.subcategory === 'IBI y basura' && item.amount > 0).reduce((sum, item) => sum + item.amount, 0);
-    const communicationsPaid = currentPeriodMovements.filter(item => item.type === 'gasto' && item.category === 'Fijos'
-      && item.subcategory === 'Comunicaciones' && item.amount > 0).reduce((sum, item) => sum + item.amount, 0);
-    const foodPaid = currentPeriodMovements.filter(item => item.type === 'gasto' && item.category === 'Comida')
-      .reduce((sum, item) => sum + item.amount, 0);
-    const ibiPending = Math.max(0, 67.61 - ibiPaid);
-    const communicationsPending = Math.max(0, 28 - communicationsPaid);
-    const foodPending = Math.max(0, 321 - foodPaid);
-    if (ibiPending) expenses.push({ label: 'IBI y basura', amount: ibiPending, note: 'Cuota pendiente: 67,61 €.' });
-    if (communicationsPending) expenses.push({ label: 'Comunicaciones (Vodafone / Lowi)', amount: communicationsPending, note: 'Factura pendiente: 28,00 €.' });
-    if (foodPending) expenses.push({ label: 'Comida', amount: foodPending, note: `Incluye unos 175,00 € más de comida; ya gastados: ${euro(foodPaid)}.` });
-    const incomes = pendingIncomeTemplates(fixedMonthlyTemplates(forecastYear, forecastMonth), currentPeriodMovements);
-    const expenseTotal = expenses.reduce((sum, item) => sum + item.amount, 0);
-    const incomeTotal = incomes.reduce((sum, item) => sum + item.amount, 0);
-    return { expenses, incomes, expenseTotal, incomeTotal, projectedBalance: balance - expenseTotal + incomeTotal };
-  }
-
-  const fixedTemplates = fixedMonthlyTemplates(forecastYear, forecastMonth).filter(template => template.type === 'gasto');
   const expenses = [];
-
-  fixedTemplates.forEach(template => {
-    const byYear = new Map();
-    previousMovements.filter(item => item.type === 'gasto' && matchesFixedTemplateMovement(item, template))
-      .forEach(item => byYear.set(item.periodYear, (byYear.get(item.periodYear) || 0) + item.amount));
-    const historicalAverage = recentYearAverage(byYear);
-    const expected = historicalAverage !== null ? historicalAverage
-      : template.amount !== null && template.amount !== undefined ? Number(template.amount) || 0
-        : template.id === 'luz-total-energy' ? monthNumber === 12 ? 120 : monthNumber === 2 ? 90 : 60 : 0;
-    const alreadyPaid = currentPeriodMovements.filter(item => matchesFixedTemplateMovement(item, template))
-      .reduce((sum, item) => sum + item.amount, 0);
-    const pending = expected >= 0 ? Math.max(0, expected - alreadyPaid) : expected - alreadyPaid;
-    if (pending) expenses.push({
-      label: pending < 0 ? `Ajuste: ${template.description}` : template.description,
-      amount: pending,
-      note: historicalAverage !== null ? 'Estimación a partir de los últimos años para este mes.' : 'Importe orientativo del fijo mensual.',
-    });
-  });
-
-  const variableByCategory = new Map();
-  previousMovements.filter(item => item.type === 'gasto' && item.category !== 'Fijos')
-    .forEach(item => {
-      const byYear = variableByCategory.get(item.category || 'Otros') || new Map();
-      byYear.set(item.periodYear, (byYear.get(item.periodYear) || 0) + item.amount);
-      variableByCategory.set(item.category || 'Otros', byYear);
-    });
-  variableByCategory.forEach((byYear, category) => {
-    const expected = recentYearAverage(byYear) || 0;
-    const alreadyPaid = currentPeriodMovements.filter(item => item.type === 'gasto' && item.category === category)
-      .reduce((sum, item) => sum + item.amount, 0);
+  const paidFor = (category, subcategory) => currentPeriodMovements
+    .filter(item => item.type === 'gasto' && item.category === category && item.subcategory === subcategory)
+    .reduce((sum, item) => sum + item.amount, 0);
+  const plan = (label, expected, category, subcategory, note, predicate = null) => {
+    if (!(expected > 0)) return;
+    const alreadyPaid = predicate
+      ? currentPeriodMovements.filter(predicate).reduce((sum, item) => sum + item.amount, 0)
+      : paidFor(category, subcategory);
     const pending = Math.max(0, expected - alreadyPaid);
-    if (pending) expenses.push({ label: category, amount: pending, note: `Gasto variable estimado para ${MONTHS[forecastMonth].toLowerCase()}, menos lo ya registrado.` });
-  });
+    if (pending > 0) expenses.push({ label, amount: pending, note });
+  };
+
+  // Previsión basada en importes y ciclos indicados por la familia; no usa medias históricas.
+  plan('Hipoteca', 536.31, 'Fijos', 'Hipoteca', 'Cuota mensual prevista: 536,31 €.');
+  plan('Préstamo Conchi', 300, 'Fijos', 'Préstamo Conchi', 'Cuota mensual prevista: 300,00 €.');
+  plan('Comunidad', 97.60, 'Fijos', 'Comunidad', 'Cuota mensual prevista: 97,60 €.');
+  plan('Ahorros hucha', 50, 'Fijos', 'Ahorros Hucha', 'Aportación mensual prevista: 50,00 €.');
+  if (monthNumber % 2 === 1) plan('Agua', 35, 'Fijos', 'Agua', 'Cada dos meses: enero, marzo, mayo, julio, septiembre y noviembre.');
+
+  const winterElectricity = monthNumber >= 10 || monthNumber <= 3;
+  plan('Luz de la casa', winterElectricity ? 80 : 60, 'Fijos', 'Electricidad',
+    'Media prevista: ' + (winterElectricity ? '80,00 € de octubre a marzo.' : '60,00 € de abril a septiembre.'),
+    item => item.type === 'gasto' && item.category === 'Fijos' && item.subcategory === 'Electricidad'
+      && item.amount > 0 && !normalizeFixedDescription(item.description).includes('luzcoche'));
+  const carLightPaid = currentPeriodMovements.some(item => item.type === 'gasto' && item.category === 'Fijos'
+    && item.subcategory === 'Electricidad' && normalizeFixedDescription(item.description).includes('luzcoche'));
+  if (!carLightPaid) expenses.push({ label: 'Ajuste luz del coche', amount: -30, note: 'Se resta como gasto negativo; no cuenta como ingreso.' });
+
+  if (monthNumber >= 3 && monthNumber <= 11) plan('IBI y basura', 67.61, 'Fijos', 'IBI y basura', 'Cuota mensual de marzo a noviembre.');
+  plan('Comunicaciones (Vodafone / Lowi)', 28, 'Fijos', 'Comunicaciones', 'Factura mensual prevista: 28,00 €.');
+  const butaneSeason = monthNumber >= 11 || monthNumber <= 3;
+  const gasAmount = (monthNumber % 2 === 0 ? 25 : 0) + (butaneSeason ? 20 : 0);
+  if (gasAmount) {
+    const gasNote = (monthNumber % 2 === 0 ? '25,00 € de GLP bimensual' : '')
+      + (monthNumber % 2 === 0 && butaneSeason ? ' + ' : '')
+      + (butaneSeason ? '20,00 € extra de butano por la estufa' : '');
+    plan('Gas (GLP y butano)', gasAmount, 'Fijos', 'Gas', gasNote + '.');
+  }
+  if (monthNumber === 3) plan('Seguro de la casa', 250, 'Fijos', 'Seguros', 'Pago anual previsto en marzo.');
+
+  plan('Supermercado', 375, 'Comida', 'Supermercado', 'Presupuesto medio de 350–400 €; se descuentan las compras registradas.');
+  plan('Ocio', 50, 'Ocio', null, 'Presupuesto mensual previsto: 50,00 €.',
+    item => item.type === 'gasto' && item.category === 'Ocio');
+  plan('Otros gastos', 50, 'Otros', null, 'Presupuesto mensual previsto: 50,00 €.',
+    item => item.type === 'gasto' && item.category === 'Otros');
+
   const incomes = pendingIncomeTemplates(fixedMonthlyTemplates(forecastYear, forecastMonth), currentPeriodMovements);
   const expenseTotal = expenses.reduce((sum, item) => sum + item.amount, 0);
   const incomeTotal = incomes.reduce((sum, item) => sum + item.amount, 0);
   return { expenses, incomes, expenseTotal, incomeTotal, projectedBalance: balance - expenseTotal + incomeTotal };
-}
-function pendingIncomeTemplates(templates, currentPeriodMovements) {
+}function pendingIncomeTemplates(templates, currentPeriodMovements) {
   return templates.filter(template => template.type === 'ingreso').flatMap(template => {
     const expected = Number(template.amount) || 0;
     const alreadyPaid = currentPeriodMovements.filter(item => matchesFixedTemplateMovement(item, template))
