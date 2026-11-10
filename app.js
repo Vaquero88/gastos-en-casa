@@ -21,6 +21,7 @@ let activeView = 'inicio';
 let movementFilter = 'todos';
 let movementCategories = null;
 let categoryPeriodMode = 'month';
+let chartPeriodMode = 'year';
 let editingId = null;
 let currentMember = null;
 let dataLoaded = false;
@@ -454,6 +455,58 @@ function render() {
   renderCategories(result.expenses);
   renderSecondaryViews(result);
 }
+function renderCategoryTrend() {
+  const chart = document.getElementById('categoryTrendChart');
+  if (!chart) return;
+  const inPeriod = db.movements.filter(item => !item.archived
+    && item.periodYear === selectedYear
+    && (chartPeriodMode === 'month' ? item.periodMonth === selectedMonth + 1 : true)
+    && (item.type === 'ingreso' || item.type === 'gasto'));
+  const buckets = new Map();
+  if (chartPeriodMode === 'year') {
+    MONTHS.forEach((name, index) => buckets.set(index + 1, { label: name.slice(0, 3), income: 0, expense: 0 }));
+    inPeriod.forEach(item => {
+      const bucket = buckets.get(item.periodMonth);
+      if (bucket) bucket[item.type === 'ingreso' ? 'income' : 'expense'] += item.amount;
+    });
+  } else {
+    inPeriod.forEach(item => {
+      const key = item.date;
+      if (!key) return;
+      if (!buckets.has(key)) {
+        const [year, month, day] = key.split('-').map(Number);
+        const label = new Date(year, month - 1, day).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }).replace('.', '');
+        buckets.set(key, { label, income: 0, expense: 0 });
+      }
+      const bucket = buckets.get(key);
+      bucket[item.type === 'ingreso' ? 'income' : 'expense'] += item.amount;
+    });
+  }
+  const entries = [...buckets.entries()].sort((a, b) => a[0] - b[0]).map(([, bucket]) => bucket);
+  const incomeTotal = inPeriod.filter(item => item.type === 'ingreso').reduce((sum, item) => sum + item.amount, 0);
+  const expenseTotal = inPeriod.filter(item => item.type === 'gasto').reduce((sum, item) => sum + item.amount, 0);
+  document.getElementById('trendIncomeTotal').textContent = euro(incomeTotal);
+  document.getElementById('trendExpenseTotal').textContent = euro(expenseTotal);
+  document.getElementById('categoryTrendCaption').textContent = chartPeriodMode === 'year'
+    ? `Ingresos y gastos de cada mes de ${selectedYear}, según el mes al que pertenecen.`
+    : `Movimientos con fecha registrada que pertenecen a ${monthName().toLowerCase()} de ${selectedYear}.`;
+  document.querySelectorAll('[data-chart-period]').forEach(button => {
+    const active = button.dataset.chartPeriod === chartPeriodMode;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+  const max = Math.max(1, ...entries.flatMap(entry => [Math.abs(entry.income), Math.abs(entry.expense)]));
+  chart.innerHTML = entries.map(entry => {
+    const incomeHeight = entry.income ? Math.max(2, Math.abs(entry.income) / max * 100) : 0;
+    const expenseHeight = entry.expense ? Math.max(2, Math.abs(entry.expense) / max * 100) : 0;
+    return `<div class="trend-column" aria-label="${escapeHtml(entry.label)}: ingresos ${escapeHtml(euro(entry.income))}, gastos ${escapeHtml(euro(entry.expense))}" title="${escapeHtml(entry.label)} · Ingresos: ${escapeHtml(euro(entry.income))} · Gastos: ${escapeHtml(euro(entry.expense))}">
+      <div class="trend-bars"><div class="trend-bar income-bar" style="height:${incomeHeight}%"></div><div class="trend-bar expense-bar" style="height:${expenseHeight}%"></div></div><span class="trend-label">${escapeHtml(entry.label)}</span>
+    </div>`;
+  }).join('');
+  chart.setAttribute('aria-label', chartPeriodMode === 'year' ? `Ingresos y gastos por mes en ${selectedYear}` : `Ingresos y gastos por fecha de movimiento en ${monthName().toLowerCase()} de ${selectedYear}`);
+  document.getElementById('emptyCategoryTrend').classList.toggle('show', !inPeriod.length);
+  chart.hidden = !inPeriod.length;
+}
 function renderMiniBars() {
   const incomeBars = document.getElementById('incomeBars');
   const expenseBars = document.getElementById('expenseBars');
@@ -584,6 +637,7 @@ function renderSecondaryViews(result) {
     ? `No hay gastos registrados en ${selectedYear}.`
     : `No hay gastos registrados en ${monthName().toLowerCase()} de ${selectedYear}.`;
   categoryEmpty.classList.toggle('show', !groupList.length);
+  renderCategoryTrend();
   renderFixedMonthly();
 }
 
@@ -872,6 +926,10 @@ document.querySelectorAll('[data-category-filter]').forEach(button => button.add
 }));
 document.querySelectorAll('[data-category-period]').forEach(button => button.addEventListener('click', () => {
   categoryPeriodMode = button.dataset.categoryPeriod;
+  render();
+}));
+document.querySelectorAll('[data-chart-period]').forEach(button => button.addEventListener('click', () => {
+  chartPeriodMode = button.dataset.chartPeriod;
   render();
 }));
 document.getElementById('movementDay').addEventListener('change', () => render());
