@@ -482,7 +482,9 @@ function renderCategoryTrend() {
       bucket[item.type === 'ingreso' ? 'income' : 'expense'] += item.amount;
     });
   }
-  const entries = [...buckets.entries()].sort((a, b) => a[0] - b[0]).map(([, bucket]) => bucket);
+  const entries = [...buckets.entries()].sort((a, b) => typeof a[0] === 'number'
+    ? a[0] - b[0]
+    : String(a[0]).localeCompare(String(b[0]))).map(([, bucket]) => bucket);
   const incomeTotal = inPeriod.filter(item => item.type === 'ingreso').reduce((sum, item) => sum + item.amount, 0);
   const expenseTotal = inPeriod.filter(item => item.type === 'gasto').reduce((sum, item) => sum + item.amount, 0);
   document.getElementById('trendIncomeTotal').textContent = euro(incomeTotal);
