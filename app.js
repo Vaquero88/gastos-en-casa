@@ -462,50 +462,39 @@ function renderCategoryTrend() {
     && item.periodYear === selectedYear
     && (chartPeriodMode === 'month' ? item.periodMonth === selectedMonth + 1 : true)
     && (item.type === 'ingreso' || item.type === 'gasto'));
-  const buckets = new Map();
-  if (chartPeriodMode === 'year') {
-    MONTHS.forEach((name, index) => buckets.set(index + 1, { label: name.slice(0, 3), income: 0, expense: 0 }));
-    inPeriod.forEach(item => {
-      const bucket = buckets.get(item.periodMonth);
-      if (bucket) bucket[item.type === 'ingreso' ? 'income' : 'expense'] += item.amount;
-    });
-  } else {
-    inPeriod.forEach(item => {
-      const key = item.date;
-      if (!key) return;
-      if (!buckets.has(key)) {
-        const [year, month, day] = key.split('-').map(Number);
-        const label = new Date(year, month - 1, day).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }).replace('.', '');
-        buckets.set(key, { label, income: 0, expense: 0 });
-      }
-      const bucket = buckets.get(key);
-      bucket[item.type === 'ingreso' ? 'income' : 'expense'] += item.amount;
-    });
-  }
-  const entries = [...buckets.entries()].sort((a, b) => typeof a[0] === 'number'
-    ? a[0] - b[0]
-    : String(a[0]).localeCompare(String(b[0]))).map(([, bucket]) => bucket);
-  const incomeTotal = inPeriod.filter(item => item.type === 'ingreso').reduce((sum, item) => sum + item.amount, 0);
-  const expenseTotal = inPeriod.filter(item => item.type === 'gasto').reduce((sum, item) => sum + item.amount, 0);
+  const expensesByCategory = new Map();
+  const incomesByPerson = new Map();
+  inPeriod.forEach(item => {
+    if (item.type === 'gasto') {
+      const category = item.category || 'Otros';
+      expensesByCategory.set(category, (expensesByCategory.get(category) || 0) + item.amount);
+    } else {
+      const person = item.person || 'Varios';
+      incomesByPerson.set(person, (incomesByPerson.get(person) || 0) + item.amount);
+    }
+  });
+  const expenses = [...expensesByCategory.entries()].sort((a, b) => b[1] - a[1]);
+  const incomes = [...incomesByPerson.entries()].sort((a, b) => b[1] - a[1]);
+  const incomeTotal = incomes.reduce((sum, [, amount]) => sum + amount, 0);
+  const expenseTotal = expenses.reduce((sum, [, amount]) => sum + amount, 0);
   document.getElementById('trendIncomeTotal').textContent = euro(incomeTotal);
   document.getElementById('trendExpenseTotal').textContent = euro(expenseTotal);
   document.getElementById('categoryTrendCaption').textContent = chartPeriodMode === 'year'
-    ? `Ingresos y gastos de cada mes de ${selectedYear}, según el mes al que pertenecen.`
-    : `Movimientos con fecha registrada que pertenecen a ${monthName().toLowerCase()} de ${selectedYear}.`;
+    ? `Importes por categoría y persona durante todo ${selectedYear}.`
+    : `Importes de ${monthName().toLowerCase()} de ${selectedYear}, según el mes al que pertenecen.`;
   document.querySelectorAll('[data-chart-period]').forEach(button => {
     const active = button.dataset.chartPeriod === chartPeriodMode;
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', String(active));
   });
-  const max = Math.max(1, ...entries.flatMap(entry => [Math.abs(entry.income), Math.abs(entry.expense)]));
-  chart.innerHTML = entries.map(entry => {
-    const incomeHeight = entry.income ? Math.max(2, Math.abs(entry.income) / max * 100) : 0;
-    const expenseHeight = entry.expense ? Math.max(2, Math.abs(entry.expense) / max * 100) : 0;
-    return `<div class="trend-column" aria-label="${escapeHtml(entry.label)}: ingresos ${escapeHtml(euro(entry.income))}, gastos ${escapeHtml(euro(entry.expense))}" title="${escapeHtml(entry.label)} · Ingresos: ${escapeHtml(euro(entry.income))} · Gastos: ${escapeHtml(euro(entry.expense))}">
-      <div class="trend-bars"><div class="trend-bar income-bar" style="height:${incomeHeight}%"></div><div class="trend-bar expense-bar" style="height:${expenseHeight}%"></div></div><span class="trend-label">${escapeHtml(entry.label)}</span>
-    </div>`;
-  }).join('');
-  chart.setAttribute('aria-label', chartPeriodMode === 'year' ? `Ingresos y gastos por mes en ${selectedYear}` : `Ingresos y gastos por fecha de movimiento en ${monthName().toLowerCase()} de ${selectedYear}`);
+  const renderBars = (rows, colorClass, emptyLabel) => {
+    const max = Math.max(1, ...rows.map(([, amount]) => Math.abs(amount)));
+    if (!rows.length) return `<p class="category-bars-empty">${emptyLabel}</p>`;
+    return rows.map(([label, amount]) => `<div class="category-bar-row"><div class="category-bar-label"><span>${escapeHtml(label)}</span><strong>${euro(amount)}</strong></div><div class="category-bar-track"><i class="${colorClass}" style="width:${Math.max(0, Math.min(100, Math.abs(amount) / max * 100))}%"></i></div></div>`).join('');
+  };
+  chart.innerHTML = `<section class="category-bar-group"><h3>Gastos por categoría</h3>${renderBars(expenses, 'expense-category-bar', 'No hay gastos en este periodo.')}</section>
+    <section class="category-bar-group"><h3>Ingresos por persona</h3>${renderBars(incomes, 'income-category-bar', 'No hay ingresos en este periodo.')}</section>`;
+  chart.setAttribute('aria-label', `Gastos por categoría e ingresos por persona en ${chartPeriodMode === 'year' ? selectedYear : `${monthName().toLowerCase()} de ${selectedYear}`}`);
   document.getElementById('emptyCategoryTrend').classList.toggle('show', !inPeriod.length);
   chart.hidden = !inPeriod.length;
 }
