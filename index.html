@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="theme.css?v=20261110-copia">
+  <link rel="stylesheet" href="theme.css?v=20261110-restaurar">
 </head>
 <body>
   <div class="app-shell" id="appShell">
@@ -26,15 +26,17 @@
         <a class="nav-link" href="#aportaciones" data-view="aportaciones"><span class="nav-icon">◉</span>Aportaciones</a>
         <a class="nav-link" href="#fijos" data-view="fijos"><span class="nav-icon">✓</span>Fijos mensuales</a>
         <a class="nav-link" href="#categorias" data-view="categorias"><span class="nav-icon">▦</span>Categorías</a>
+        <button class="nav-link mobile-backup-trigger" id="mobileBackupAction" type="button" aria-label="Copia de seguridad"><span class="nav-icon">⇧</span>Copia</button>
       </nav>
       <div class="sidebar-bottom">
         <div class="month-card"><span class="month-card-icon">✦</span><div><strong>Un mes a la vez</strong><p>Los gastos se organizan por mes y categoría, como en vuestro Excel.</p></div></div>
+        <button class="sidebar-backup-button" id="backupAction" type="button"><span aria-hidden="true">⇧</span><span><strong>Copia de seguridad</strong><small>Guardar o restaurar datos</small></span></button>
         <button class="profile-button" id="profileButton"><span class="avatar avatar-tito">T</span><span><strong>Tito</strong><small>Administrador</small></span><span class="more">···</span></button>
       </div>
     </aside>
 
     <main class="main-content">
-      <header class="topbar"><div class="crumb">Vuestro hogar <span>/</span> <b id="breadcrumb">Resumen</b></div><div class="top-actions"><div class="history-actions" aria-label="Historial de cambios"><button class="history-button" id="undoAction" type="button" title="Deshacer el último cambio" aria-label="Deshacer" disabled>↶ Deshacer</button><button class="history-button" id="redoAction" type="button" title="Rehacer el último cambio deshecho" aria-label="Rehacer" disabled>↷ Rehacer</button></div><button class="backup-button" id="backupAction" type="button" title="Descargar una copia de seguridad" aria-label="Descargar copia de seguridad"><span aria-hidden="true">↓</span> Copia</button><span class="sync-status"><i></i> <span id="syncStatusText">Conectando con la cuenta común…</span></span></div></header>
+      <header class="topbar"><div class="crumb">Vuestro hogar <span>/</span> <b id="breadcrumb">Resumen</b></div><div class="top-actions"><div class="history-actions" aria-label="Historial de cambios"><button class="history-button" id="undoAction" type="button" title="Deshacer el último cambio" aria-label="Deshacer" disabled>↶ Deshacer</button><button class="history-button" id="redoAction" type="button" title="Rehacer el último cambio deshecho" aria-label="Rehacer" disabled>↷ Rehacer</button></div><span class="sync-status"><i></i> <span id="syncStatusText">Conectando con la cuenta común…</span></span></div></header>
       <section class="page-heading">
         <div><p class="eyebrow" id="todayLabel">VUESTRO DINERO, EN ORDEN</p><h1 id="pageTitle">Resumen</h1><p class="heading-subtitle" id="pageSubtitle">Todo lo que entra y sale de vuestra cuenta común.</p></div>
         <div class="heading-actions"><div class="month-select"><button id="prevMonth" aria-label="Mes anterior">‹</button><span class="month-picker-control"><button class="month-picker-trigger" id="monthPickerButton" type="button" tabindex="-1" aria-hidden="true"><span class="month-label-text" id="monthLabel">Noviembre 2026</span><span class="month-picker-icon" aria-hidden="true">▦</span></button><input id="monthPicker" class="month-picker-input" type="month" aria-label="Elegir mes y año" title="Elegir mes y año" value="2026-11"></span><button id="nextMonth" aria-label="Mes siguiente">›</button><button class="current-month-quick" id="currentMonth" aria-label="Volver al mes actual" title="Volver al mes actual">Hoy</button></div><button class="primary-button" id="addMovement"><span>＋</span> Añadir movimiento</button></div>
@@ -93,9 +95,10 @@
     </main>
   </div>
 
+  <dialog id="backupDialog" class="backup-dialog"><div class="backup-dialog-content"><div class="dialog-header"><div><span class="dialog-kicker">CUENTA COMPARTIDA</span><h2>Copia de seguridad</h2></div><button class="close-button" type="button" id="closeBackupDialog" aria-label="Cerrar">×</button></div><p>Guarda una copia de tus datos o restáurala desde un archivo anterior.</p><div class="backup-dialog-actions"><button class="backup-option" id="downloadBackupAction" type="button"><strong>↓ Descargar copia</strong><small>Guarda los saldos y todos los movimientos.</small></button><button class="backup-option" id="restoreBackupAction" type="button"><strong>↥ Restaurar copia</strong><small>Reemplaza los datos actuales por los del archivo.</small></button></div><input id="backupFileInput" type="file" accept=".json,application/json" hidden></div></dialog>
   <dialog id="movementDialog" class="movement-dialog"><form id="movementForm" method="dialog"><div class="dialog-header"><div><span class="dialog-kicker">CUENTA COMPARTIDA</span><h2 id="dialogTitle">Añadir movimiento</h2></div><button class="close-button" type="button" id="closeDialog" aria-label="Cerrar">×</button></div><div class="type-switch"><button type="button" class="type-option active" data-type="gasto">Gasto</button><button type="button" class="type-option" data-type="ingreso">Ingreso / aportación</button></div><input type="hidden" id="movementType" value="gasto"><div class="form-grid"><label class="full-field">Descripción<input id="description" name="description" placeholder="Por ejemplo, compra del supermercado" maxlength="80" required></label><label>Importe<div class="amount-input"><input id="amount" name="amount" type="number" min="-9999999" step="0.01" placeholder="0,00" required><span>€</span></div><small class="field-hint" id="amountHint">Usa un importe negativo para devoluciones o ajustes</small></label><label>Mes al que pertenece<input id="periodMonth" name="periodMonth" type="month" required><small class="field-hint">Este mes decide en qué resumen aparecerá.</small></label><label>Fecha del movimiento<input id="date" name="date" type="date" required><small class="field-hint">La fecha real en que se hizo.</small></label><label id="categoryField">Categoría<select id="category" name="category" required></select></label><label id="subcategoryField">Subcategoría<select id="subcategory" name="subcategory" required></select></label><label id="personField">¿Quién aporta?<select id="person" name="person"><option>Tito</option><option>Sheila</option><option>Varios</option></select></label></div><label class="notes-field">Nota <span>(opcional)</span><textarea id="notes" name="notes" rows="2" maxlength="180" placeholder="Un detalle que queráis recordar"></textarea></label><div class="dialog-actions"><button class="secondary-button" type="button" id="cancelDialog">Cancelar</button><button class="primary-button" type="submit">Guardar movimiento <span>→</span></button></div></form></dialog>
   <script src="config.js"></script>
-  <script src="app.js?v=20261110-copia"></script>
+  <script src="app.js?v=20261110-restaurar"></script>
 </body>
 </html>
 
