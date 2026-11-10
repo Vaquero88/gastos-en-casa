@@ -293,15 +293,15 @@ function forecastExpenses(balance) {
   const inForecastPeriod = item => item.periodYear === forecastYear && item.periodMonth === monthNumber;
   const currentPeriodMovements = db.movements.filter(item => !item.archived && inForecastPeriod(item));
   const expenses = [];
-  const paidFor = (category, subcategory) => currentPeriodMovements
-    .filter(item => item.type === 'gasto' && item.category === category && item.subcategory === subcategory)
-    .reduce((sum, item) => sum + item.amount, 0);
-  const plan = (label, expected, category, subcategory, note, predicate = null) => {
-    if (!(expected > 0)) return;
-    const alreadyPaid = predicate
-      ? currentPeriodMovements.filter(predicate).reduce((sum, item) => sum + item.amount, 0)
-      : paidFor(category, subcategory);
-    const pending = Math.max(0, expected - alreadyPaid);
+  const paidExpenses = currentPeriodMovements.filter(item => item.type === 'gasto' && item.amount > 0);
+  const matchesCategory = (category, subcategory) => item =>
+    item.category === category && (subcategory === null || item.subcategory === subcategory);
+  const plan = (label, expected, category, subcategory, note, predicate = matchesCategory(category, subcategory)) => {
+    if (expected > 0 && !paidExpenses.some(predicate)) expenses.push({ label, amount: expected, note });
+  };
+  const budget = (label, expected, note, predicate) => {
+    const spent = paidExpenses.filter(predicate).reduce((sum, item) => sum + item.amount, 0);
+    const pending = Math.round((expected - spent) * 100) / 100;
     if (pending > 0) expenses.push({ label, amount: pending, note });
   };
 
@@ -324,23 +324,35 @@ function forecastExpenses(balance) {
   if (monthNumber >= 3 && monthNumber <= 11) plan('IBI y basura', 67.61, 'Fijos', 'IBI y basura', 'Cuota mensual de marzo a noviembre.');
   plan('Comunicaciones (Vodafone / Lowi)', 28, 'Fijos', 'Comunicaciones', 'Factura mensual prevista: 28,00 €.');
   const butaneSeason = monthNumber >= 11 || monthNumber <= 3;
-  const gasAmount = (monthNumber % 2 === 0 ? 25 : 0) + (butaneSeason ? 20 : 0);
-  if (gasAmount) {
-    const gasNote = (monthNumber % 2 === 0 ? '25,00 € de GLP bimensual' : '')
-      + (monthNumber % 2 === 0 && butaneSeason ? ' + ' : '')
-      + (butaneSeason ? '20,00 € extra de butano por la estufa' : '');
-    plan('Gas (GLP y butano)', gasAmount, 'Fijos', 'Gas', gasNote + '.');
+  const isGas = matchesCategory('Fijos', 'Gas');
+  const isGlp = item => item.fixedTemplateId === 'redexis-glp'
+    || /redexis|glp/.test(normalizeFixedDescription(item.description));
+  if (monthNumber % 2 === 0) {
+    plan('Gas (GLP)', 25, 'Fijos', 'Gas', 'Recibo bimensual previsto: 25,00 €.',
+      item => isGas(item) && isGlp(item));
+  }
+  if (butaneSeason) {
+    plan('Gas (butano)', 20, 'Fijos', 'Gas', 'Bombona prevista: 20,00 €.',
+      item => isGas(item) && !isGlp(item));
   }
   if (monthNumber === 3) plan('Seguro de la casa', 250, 'Fijos', 'Seguros', 'Pago anual previsto en marzo.');
 
-  plan('Supermercado', 350, 'Comida', 'Supermercado', 'Presupuesto mensual previsto: 350,00 €; se descuentan las compras registradas.');
-  plan('Ocio', 50, 'Ocio', null, 'Presupuesto mensual previsto: 50,00 €.',
-    item => item.type === 'gasto' && item.category === 'Ocio');
+  const isSupermarket = matchesCategory('Comida', 'Supermercado');
+  if (forecastYear === 2026 && monthNumber === 11) {
+    const novemberBudgetStarts = Date.parse('2026-11-10T19:38:34.465+01:00');
+    budget('Supermercado', 150, 'Hasta 150,00 € más en noviembre. Las nuevas compras reducen lo pendiente.',
+      item => isSupermarket(item) && item.createdAt > novemberBudgetStarts);
+  } else {
+    budget('Supermercado', 350, 'Presupuesto mensual previsto de 350,00 €.',
+      isSupermarket);
+  }
+  budget('Ocio', 50, 'Presupuesto mensual previsto de 50,00 €.', matchesCategory('Ocio', null));
   const incomes = pendingIncomeTemplates(fixedMonthlyTemplates(forecastYear, forecastMonth), currentPeriodMovements);
   const expenseTotal = expenses.reduce((sum, item) => sum + item.amount, 0);
   const incomeTotal = incomes.reduce((sum, item) => sum + item.amount, 0);
   return { expenses, incomes, expenseTotal, incomeTotal, projectedBalance: balance - expenseTotal + incomeTotal };
-}function pendingIncomeTemplates(templates, currentPeriodMovements) {
+}
+function pendingIncomeTemplates(templates, currentPeriodMovements) {
   return templates.filter(template => template.type === 'ingreso').flatMap(template => {
     const expected = Number(template.amount) || 0;
     const alreadyPaid = currentPeriodMovements.filter(item => matchesFixedTemplateMovement(item, template))
