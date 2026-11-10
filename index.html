@@ -106,6 +106,12 @@
         </section>
         <section id="categoriasView" class="secondary-page" hidden>
           <article class="panel secondary-panel"><div class="panel-heading"><div><h2>Gastos por categoría</h2><p>Totales de <span id="categoryPeriodCaption"></span> y sus subcategorías.</p></div><div class="category-period-toggle" role="group" aria-label="Periodo de gastos por categoría"><button type="button" data-category-period="month" aria-pressed="true">Mensual</button><button type="button" data-category-period="year" aria-pressed="false">Anual</button></div></div><div id="categoryDetailList" class="category-detail-list"></div><div class="empty-category" id="emptyCategoryView">No hay gastos registrados en este periodo.</div></article>
+          <article class="panel category-trend-panel">
+            <div class="panel-heading"><div><h2>Ingresos y gastos</h2><p id="categoryTrendCaption">Ingresos y gastos de cada mes, según el mes al que pertenecen.</p></div><div class="category-period-toggle" role="group" aria-label="Periodo del gráfico"><button type="button" data-chart-period="month" aria-pressed="false">Mensual</button><button type="button" data-chart-period="year" aria-pressed="true">Anual</button></div></div>
+            <div class="category-trend-totals"><div><span class="trend-dot income-dot"></span><span>Ingresos</span><strong id="trendIncomeTotal">0,00 €</strong></div><div><span class="trend-dot expense-dot"></span><span>Gastos</span><strong id="trendExpenseTotal">0,00 €</strong></div></div>
+            <div id="categoryTrendChart" class="category-trend-chart" role="img" aria-label="Gráfico de ingresos y gastos"></div>
+            <div id="emptyCategoryTrend" class="empty-category">Todavía no hay ingresos ni gastos en este periodo.</div>
+          </article>
         </section>
       </div>
     </main>
