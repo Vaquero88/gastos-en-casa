@@ -164,18 +164,12 @@ revoke all on function public.casa_es_admin() from public, anon;
 grant execute on function public.casa_hogar_actual() to authenticated;
 grant execute on function public.casa_es_admin() to authenticated;
 
--- Anyone with the app link can read and edit this household's data without signing in.
+-- The ledger is private; only the server-side casa-api function receives database access.
 drop policy if exists casa_hogares_public_link_select on public.casa_hogares;
-create policy casa_hogares_public_link_select on public.casa_hogares
-  for select to anon
-  using (id = 'f8578860-5cab-48bf-8643-6c6ca874036c');
+drop policy if exists casa_hogares_public_link_restore_update on public.casa_hogares;
 drop policy if exists casa_movimientos_public_link_access on public.casa_movimientos;
-create policy casa_movimientos_public_link_access on public.casa_movimientos
-  for all to anon
-  using (hogar_id = 'f8578860-5cab-48bf-8643-6c6ca874036c')
-  with check (hogar_id = 'f8578860-5cab-48bf-8643-6c6ca874036c');
-revoke all on public.casa_miembros from anon;
-grant select, update on public.casa_hogares to anon;
-grant select, insert, update, delete on public.casa_movimientos to anon;
-
+drop policy if exists casa_miembros_select_member on public.casa_miembros;
+drop policy if exists casa_miembros_update_admin on public.casa_miembros;
+revoke all on table public.casa_hogares, public.casa_miembros, public.casa_movimientos from public, anon, authenticated;
+grant select, insert, update, delete on table public.casa_hogares, public.casa_movimientos to service_role;
 
