@@ -333,12 +333,9 @@ function forecastExpenses(balance) {
   }
   if (monthNumber === 3) plan('Seguro de la casa', 250, 'Fijos', 'Seguros', 'Pago anual previsto en marzo.');
 
-  plan('Supermercado', 375, 'Comida', 'Supermercado', 'Presupuesto medio de 350–400 €; se descuentan las compras registradas.');
+  plan('Supermercado', 350, 'Comida', 'Supermercado', 'Presupuesto mensual previsto: 350,00 €; se descuentan las compras registradas.');
   plan('Ocio', 50, 'Ocio', null, 'Presupuesto mensual previsto: 50,00 €.',
     item => item.type === 'gasto' && item.category === 'Ocio');
-  plan('Otros gastos', 50, 'Otros', null, 'Presupuesto mensual previsto: 50,00 €.',
-    item => item.type === 'gasto' && item.category === 'Otros');
-
   const incomes = pendingIncomeTemplates(fixedMonthlyTemplates(forecastYear, forecastMonth), currentPeriodMovements);
   const expenseTotal = expenses.reduce((sum, item) => sum + item.amount, 0);
   const incomeTotal = incomes.reduce((sum, item) => sum + item.amount, 0);
