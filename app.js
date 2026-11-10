@@ -190,9 +190,9 @@ function renderHouseholdBalances() {
   const mortgageTemplate = fixedMonthlyTemplates().find(item => item.id === 'hipoteca');
   const mortgageMonthlyAmount = mortgageProgress?.amount || Number(mortgageTemplate?.amount || 0);
   document.getElementById('lifetimeTito').textContent = euro(titoTotal);
-  document.getElementById('lifetimeTitoDetail').textContent = `Inicio: ${euro(db.initialTito)} · desde 2022: ${euro(titoAdds)}`;
+  document.getElementById('lifetimeTitoDetail').textContent = `Inicio: ${euro(db.initialTito)} · desde 2021: ${euro(titoAdds)}`;
   document.getElementById('lifetimeSheila').textContent = euro(sheilaTotal);
-  document.getElementById('lifetimeSheilaDetail').textContent = `Inicio: ${euro(db.initialSheila)} · desde 2022: ${euro(sheilaAdds)}`;
+  document.getElementById('lifetimeSheilaDetail').textContent = `Inicio: ${euro(db.initialSheila)} · desde 2021: ${euro(sheilaAdds)}`;
   document.getElementById('differenceTito').textContent = `${difference >= 0 ? '+' : '−'}${euro(Math.abs(difference))}`;
   document.getElementById('differenceSheila').textContent = `${difference <= 0 ? '+' : '−'}${euro(Math.abs(difference))}`;
   document.getElementById('differenceCaption').textContent = difference === 0
