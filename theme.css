@@ -75,6 +75,10 @@ body { background: #f4f0f8; color: #292438; }
 
 .balance-card { background: #e9e0f3; border-color: #ddd0ed; }
 .balance-card .metric-value { color: #4f3971; }
+.balance-card { height: 154px; }
+.balance-card .metric-foot { align-items: flex-start; line-height: 1.35; }
+.balance-forecast-result { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; margin-top: 7px; position: relative; z-index: 1; color: #76698a; font-size: 8px; }
+.balance-forecast-result strong { flex: 0 0 auto; color: #4f3971; font: 700 10px Manrope, sans-serif; white-space: nowrap; }
 .metric-icon.purple { background: #e9e0f3; color: #7252a0; }
 .metric-icon.green { background: #e2f0ed; color: #43847b; }
 .metric-icon.coral { background: #fae9e6; color: #c66e62; }
@@ -268,4 +272,4 @@ body { background: #f4f0f8; color: #292438; }
 .backup-option:hover { border-color: #c9b8db; background: #f8f5fb; }
 .backup-option strong { font-size: 11px; }
 .backup-option small { color: #817c8c; font-size: 9px; }
-@media (max-width: 720px) { .top-actions { gap: 8px; } .history-actions { gap: 3px; } .history-button { padding: 5px 6px; font-size: 8px; } .logout-button { padding: 5px 7px; font-size: 8px; } .sidebar-bottom { display: none; } .mobile-backup-trigger { display: flex; border: 0; background: transparent; cursor: pointer; } }
+@media (max-width: 720px) { .top-actions { gap: 8px; } .history-actions { gap: 3px; } .history-button { padding: 5px 6px; font-size: 8px; } .logout-button { padding: 5px 7px; font-size: 8px; } .sidebar-bottom { display: none; } .mobile-backup-trigger { display: flex; border: 0; background: transparent; cursor: pointer; } .balance-card { height: 148px; padding: 12px; } .balance-forecast-result { align-items: flex-start; font-size: 7px; } .balance-forecast-result strong { font-size: 9px; } }
