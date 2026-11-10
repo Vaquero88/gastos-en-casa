@@ -10,14 +10,10 @@ const CATEGORIES = {
   Otros: ['Otros'],
 };
 const HOUSEHOLD_ID = 'f8578860-5cab-48bf-8643-6c6ca874036c';
-const IS_LOCAL_FILE = window.location.protocol === 'file:';
-const LOCAL_STORAGE_KEY = 'casa-en-comun-local-v1';
+const SESSION_STORAGE_KEY = 'casa-en-comun-session-v1';
+const CASA_API_URL = `${String(window.CASA_SUPABASE_URL || '').replace(/\/+$/, '')}/functions/v1/casa-api`;
 const now = new Date();
-const supabaseClient = window.supabase?.createClient(
-  window.CASA_SUPABASE_URL,
-  window.CASA_SUPABASE_PUBLISHABLE_KEY,
-  { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } },
-);
+let sessionToken = sessionStorage.getItem(SESSION_STORAGE_KEY) || '';
 
 let selectedYear = now.getFullYear();
 let selectedMonth = now.getMonth();
@@ -33,8 +29,38 @@ let redoHistory = [];
 let db = { openingBalance: 0, initialSavings: 0, initialConchiDebt: 0, initialTito: 0, initialSheila: 0, movements: [] };
 
 const appShell = document.getElementById('appShell');
+const authGate = document.getElementById('authGate');
 const dialog = document.getElementById('movementDialog');
 const form = document.getElementById('movementForm');
+
+async function requestApi(action, payload = {}, token = sessionToken) {
+  const headers = {
+    'Content-Type': 'application/json',
+    apikey: window.CASA_SUPABASE_PUBLISHABLE_KEY,
+  };
+  if (token) headers['x-casa-session'] = token;
+  const response = await fetch(CASA_API_URL, { method: 'POST', headers, body: JSON.stringify({ action, ...payload }) });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(result.error || 'No se pudo completar la solicitud.');
+    error.status = response.status;
+    error.code = result.code;
+    throw error;
+  }
+  return result;
+}
+function showAuthGate(message = '') {
+  appShell.hidden = true;
+  authGate.hidden = false;
+  const messageElement = document.getElementById('loginMessage');
+  messageElement.textContent = message;
+  messageElement.classList.toggle('error', Boolean(message));
+}
+function setAuthSession(token) {
+  sessionToken = token || '';
+  if (sessionToken) sessionStorage.setItem(SESSION_STORAGE_KEY, sessionToken);
+  else sessionStorage.removeItem(SESSION_STORAGE_KEY);
+}
 
 function euro(value) {
   return new Intl.NumberFormat('es-ES', {
@@ -117,24 +143,6 @@ function toast(message, isError = false) {
   element.textContent = message;
   document.body.append(element);
   setTimeout(() => element.remove(), 2800);
-}
-function loadLocalData() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || 'null');
-    if (saved && typeof saved === 'object' && Array.isArray(saved.movements)) {
-      db = { ...db, ...saved };
-    }
-  } catch (error) {
-    console.warn('No se pudieron leer los movimientos guardados en este navegador.', error);
-  }
-}
-function saveLocalData() {
-  try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(db));
-  } catch (error) {
-    toast('No se pudo guardar en este navegador.', true);
-    console.error('Error al guardar en modo local:', error);
-  }
 }
 function mapFromDatabase(row) {
   return {
@@ -219,39 +227,8 @@ async function restoreBackupData(backup) {
     initialTito: Number(backup.balances.initialTito),
     initialSheila: Number(backup.balances.initialSheila),
   };
-  if (currentMember?.hogar_id && supabaseClient) {
-    const { error: householdError } = await supabaseClient.from('casa_hogares').update({
-      saldo_inicial: balances.openingBalance,
-      hucha_inicial: balances.initialSavings,
-      deuda_conchi_inicial: balances.initialConchiDebt,
-      aportacion_inicial_tito: balances.initialTito,
-      aportacion_inicial_sheila: balances.initialSheila,
-    }).eq('id', currentMember.hogar_id);
-    if (householdError) throw householdError;
-    const rows = backup.movements.map(item => {
-      const row = movementToDatabase(item);
-      row.archivado = Boolean(item.archived);
-      return row;
-    });
-    for (let index = 0; index < rows.length; index += 500) {
-      const { error } = await supabaseClient.from('casa_movimientos').upsert(rows.slice(index, index + 500), { onConflict: 'id' });
-      if (error) throw error;
-    }
-    const backupIds = new Set(rows.map(row => row.id));
-    const existingRows = await fetchAllMovements(currentMember.hogar_id, true);
-    const staleIds = existingRows.map(row => row.id).filter(id => !backupIds.has(id));
-    for (let index = 0; index < staleIds.length; index += 500) {
-      const { error } = await supabaseClient.from('casa_movimientos').update({ archivado: true })
-        .eq('hogar_id', currentMember.hogar_id).in('id', staleIds.slice(index, index + 500));
-      if (error) throw error;
-    }
-  } else if (IS_LOCAL_FILE) {
-    db = { ...db, ...balances };
-    db.movements = backup.movements.filter(item => !item.archived).map(item => ({ ...item }));
-    saveLocalData();
-  } else {
-    throw new Error('No se ha podido acceder a los datos de la cuenta.');
-  }
+    if (!currentMember?.hogar_id) throw new Error('Inicia sesión antes de restaurar una copia.');
+    await requestApi('restoreBackup', { householdId: currentMember.hogar_id, balances, movements: backup.movements });
   db = { ...db, ...balances, movements: backup.movements.filter(item => !item.archived).map(item => ({ ...item })) };
   undoHistory = [];
   redoHistory = [];
@@ -333,51 +310,50 @@ function renderHouseholdBalances() {
 }
 
 async function loadPublicData() {
-  if (!supabaseClient) {
-    document.getElementById('syncStatusText').textContent = 'No se pudo conectar';
-    toast('No se pudo iniciar la conexión con la base de datos.', true);
+  if (!sessionToken) {
+    showAuthGate();
     return;
   }
   try {
-    const { data: household, error: householdError } = await supabaseClient.from('casa_hogares')
-      .select('id,nombre,saldo_inicial,hucha_inicial,deuda_conchi_inicial,aportacion_inicial_tito,aportacion_inicial_sheila')
-      .eq('id', HOUSEHOLD_ID).single();
-    if (householdError) throw householdError;
-    const rows = await fetchAllMovements(HOUSEHOLD_ID);
-    currentMember = { hogar_id: household.id, nombre: 'Cuenta común', rol: 'admin' };
+    const { household, movements, member } = await requestApi('getData');
+    if (household.id !== HOUSEHOLD_ID) throw new Error('No se encontró la cuenta común.');
+    currentMember = { hogar_id: household.id, nombre: member.displayName, persona: member.person, rol: 'admin' };
     db = {
       openingBalance: Number(household.saldo_inicial || 0),
       initialSavings: Number(household.hucha_inicial || 0),
       initialConchiDebt: Number(household.deuda_conchi_inicial || 0),
       initialTito: Number(household.aportacion_inicial_tito || 0),
       initialSheila: Number(household.aportacion_inicial_sheila || 0),
-      movements: (rows || []).map(mapFromDatabase),
+      movements: (movements || []).map(mapFromDatabase),
     };
     dataLoaded = true;
-    document.querySelector('.profile-button strong').textContent = 'Cuenta común';
-    document.querySelector('.profile-button small').textContent = 'Acceso por enlace';
+    document.querySelector('.profile-button strong').textContent = member.displayName;
+    document.querySelector('.profile-button small').textContent = 'Sesión protegida';
     document.querySelector('.profile-button .avatar').textContent = '⌂';
+    authGate.hidden = true;
+    appShell.hidden = false;
     setWriteAccess(true);
-    document.getElementById('syncStatusText').textContent = 'Conectado a Supabase';
+    document.getElementById('syncStatusText').textContent = 'Cuenta protegida';
     render();
+    return true;
   } catch (error) {
-    document.getElementById('syncStatusText').textContent = 'No se pudo cargar';
-    toast('No se pudo cargar la cuenta común. Comprueba la conexión.', true);
-    console.error('No se pudo cargar Supabase:', error);
+    if (error.status === 401) {
+      setAuthSession('');
+      currentMember = null;
+      dataLoaded = false;
+      showAuthGate('Tu sesión ha caducado. Vuelve a iniciar sesión.');
+    } else {
+      document.getElementById('loginMessage').textContent = 'No se pudo conectar con la cuenta. Inténtalo de nuevo.';
+      document.getElementById('loginMessage').classList.add('error');
+      console.error('No se pudo cargar la cuenta protegida:', error);
+    }
+    return false;
   }
 }
 async function fetchAllMovements(householdId, includeArchived = false) {
-  const pageSize = 1000;
-  const rows = [];
-  for (let offset = 0; ; offset += pageSize) {
-    let query = supabaseClient.from('casa_movimientos').select('*').eq('hogar_id', householdId);
-    if (!includeArchived) query = query.eq('archivado', false);
-    const { data, error } = await query.order('periodo_anio').order('periodo_mes').order('fecha').order('id')
-      .range(offset, offset + pageSize - 1);
-    if (error) throw error;
-    rows.push(...(data || []));
-    if (!data || data.length < pageSize) return rows;
-  }
+  if (householdId !== HOUSEHOLD_ID) throw new Error('No se puede acceder a este hogar.');
+  const { movements } = await requestApi('getMovements', { includeArchived });
+  return movements || [];
 }
 function setWriteAccess(canWrite) {
   ['addMovement', 'addContribution', 'addContributionView', 'emptyAdd'].forEach(id => {
@@ -420,25 +396,6 @@ function updateHistoryButtons() {
   if (undo) undo.title = undoHistory.length ? `Deshacer: ${undoHistory.at(-1).label}` : 'Deshacer el último cambio';
   if (redo) redo.title = redoHistory.length ? `Rehacer: ${redoHistory.at(-1).label}` : 'Rehacer el último cambio deshecho';
 }
-function movementToDatabase(item) {
-  return {
-    id: item.id,
-    hogar_id: currentMember.hogar_id,
-    fecha: item.date,
-    periodo_anio: item.periodYear,
-    periodo_mes: item.periodMonth,
-    descripcion: item.description,
-    tipo: item.type,
-    categoria: item.category,
-    subcategoria: item.subcategory || '',
-    persona: item.person || null,
-    importe: item.amount,
-    notas: item.notes || '',
-    plantilla_fijo_id: item.fixedTemplateId || null,
-    creado_por: null,
-    archivado: false,
-  };
-}
 async function applyHistory(direction) {
   const undoing = direction === 'undo';
   const source = undoing ? undoHistory : redoHistory;
@@ -452,28 +409,10 @@ async function applyHistory(direction) {
   try {
     for (const change of entry.changes) {
       const target = undoing ? change.before : change.after;
-      if (IS_LOCAL_FILE && !supabaseClient) {
-        if (target) {
-          const index = db.movements.findIndex(item => String(item.id) === change.id);
-          if (index < 0) db.movements.push({ ...target });
-          else db.movements[index] = { ...target };
-        } else {
-          db.movements = db.movements.filter(item => String(item.id) !== change.id);
-        }
-        continue;
-      }
-      const response = target
-        ? await supabaseClient.from('casa_movimientos').upsert(movementToDatabase(target), { onConflict: 'id' })
-        : await supabaseClient.from('casa_movimientos').update({ archivado: true })
-          .eq('id', change.id).eq('hogar_id', currentMember.hogar_id);
-      if (response.error) throw response.error;
+      if (target) await requestApi('saveMovement', { movement: target });
+      else await requestApi('archiveMovement', { id: change.id });
     }
-    if (IS_LOCAL_FILE && !supabaseClient) {
-      saveLocalData();
-      render();
-    } else {
-      await refreshMovements();
-    }
+    await refreshMovements();
     source.pop();
     destination.push(entry);
     updateHistoryButtons();
@@ -701,33 +640,14 @@ async function applyFixedMonthly(button) {
   }
   const previousMovements = db.movements.map(item => ({ ...item }));
   const movement = {
-    hogar_id: currentMember.hogar_id,
-    fecha: date,
-    periodo_anio: selectedYear,
-    periodo_mes: selectedMonth + 1,
-    descripcion: description,
-    tipo: template.type,
-    categoria: template.category,
-    subcategoria: template.subcategory,
-    persona: template.person || null,
-    importe: amount,
-    notas: '',
-    creado_por: null,
-    plantilla_fijo_id: template.id,
+    id: crypto.randomUUID(), date, periodYear: selectedYear, periodMonth: selectedMonth + 1,
+    description, type: template.type, category: template.category, subcategory: template.subcategory,
+    person: template.person || null, amount, notes: '', fixedTemplateId: template.id, createdAt: Date.now(),
   };
   try {
-    if (IS_LOCAL_FILE && !supabaseClient) {
-      db.movements.push({ id: crypto.randomUUID(), date, periodYear: selectedYear, periodMonth: selectedMonth + 1,
-        description, type: template.type, category: template.category, subcategory: template.subcategory,
-        person: template.person || null, amount, notes: '', fixedTemplateId: template.id, createdAt: Date.now() });
-      saveLocalData();
-      recordMovementHistory(previousMovements, `añadir ${description}`);
-    } else {
-      const { error } = await supabaseClient.from('casa_movimientos').insert(movement);
-      if (error) throw error;
-      await refreshMovements();
-      recordMovementHistory(previousMovements, `añadir ${description}`);
-    }
+    await requestApi('createMovement', { movement });
+    await refreshMovements();
+    recordMovementHistory(previousMovements, `añadir ${description}`);
     render();
     toast('Movimiento fijo añadido');
   } catch (error) {
@@ -767,23 +687,9 @@ async function saveFixedMonthlyEdit(button) {
   const previousMovements = db.movements.map(item => ({ ...item }));
   button.disabled = true;
   try {
-    if (IS_LOCAL_FILE && !supabaseClient) {
-      db.movements = db.movements.map(item => item.id === movement.id
-        ? { ...item, date, description, amount, fixedTemplateId: template.id }
-        : item);
-      saveLocalData();
-      recordMovementHistory(previousMovements, `editar ${description}`);
-    } else {
-      const { error } = await supabaseClient.from('casa_movimientos').update({
-        fecha: date,
-        descripcion: description,
-        importe: amount,
-        plantilla_fijo_id: template.id,
-      }).eq('id', movement.id).eq('hogar_id', currentMember.hogar_id);
-      if (error) throw error;
-      await refreshMovements();
-      recordMovementHistory(previousMovements, `editar ${description}`);
-    }
+    await requestApi('updateMovement', { id: movement.id, changes: { date, description, amount, fixedTemplateId: template.id } });
+    await refreshMovements();
+    recordMovementHistory(previousMovements, `editar ${description}`);
     render();
     toast('Movimiento fijo actualizado');
   } catch (error) {
@@ -887,29 +793,16 @@ async function saveMovement(event) {
   if (!date || !periodYear || !periodMonth || !movement.descripcion) return;
   const previousMovements = db.movements.map(item => ({ ...item }));
   const historyLabel = `${editingId ? 'editar' : 'añadir'} ${movement.descripcion}`;
-  if (IS_LOCAL_FILE && !supabaseClient) {
-    const localMovement = {
-      id: editingId || (crypto.randomUUID ? crypto.randomUUID() : `local-${Date.now()}-${Math.random().toString(16).slice(2)}`),
-      date, periodYear, periodMonth, description: movement.descripcion, type,
-      category: movement.categoria, subcategory: movement.subcategoria,
-      person: movement.persona, amount, notes: movement.notas, createdAt: Date.now(),
-    };
-    if (editingId) db.movements = db.movements.map(item => item.id === editingId ? localMovement : item);
-    else db.movements.push(localMovement);
-    saveLocalData();
-    selectedYear = periodYear;
-    selectedMonth = periodMonth - 1;
-    closeDialog();
-    recordMovementHistory(previousMovements, historyLabel);
-    render();
-    toast('Guardado solo en este navegador');
-    return;
-  }
   try {
-    const response = editingId
-      ? await supabaseClient.from('casa_movimientos').update(movement).eq('id', editingId).eq('hogar_id', currentMember.hogar_id)
-      : await supabaseClient.from('casa_movimientos').insert(movement);
-    if (response.error) throw response.error;
+    const previous = db.movements.find(item => String(item.id) === String(editingId));
+    const savedMovement = {
+      id: editingId || crypto.randomUUID(), date, periodYear, periodMonth,
+      description: movement.descripcion, type, category: movement.categoria,
+      subcategory: movement.subcategoria, person: movement.persona,
+      amount, notes: movement.notas, fixedTemplateId: previous?.fixedTemplateId || null,
+      createdAt: previous?.createdAt || Date.now(),
+    };
+    await requestApi('saveMovement', { movement: savedMovement });
     selectedYear = periodYear;
     selectedMonth = periodMonth - 1;
     closeDialog();
@@ -925,19 +818,15 @@ async function archiveMovement(id) {
   const movement = db.movements.find(item => item.id === id);
   if (!movement || currentMember?.rol !== 'admin' || !confirm(`¿Archivar «${movement.description}»?`)) return;
   const previousMovements = db.movements.map(item => ({ ...item }));
-  if (IS_LOCAL_FILE && !supabaseClient) {
-    db.movements = db.movements.filter(item => item.id !== id);
-    saveLocalData();
+  try {
+    await requestApi('archiveMovement', { id });
+    await refreshMovements();
     recordMovementHistory(previousMovements, `archivar ${movement.description}`);
-    render();
-    toast('Movimiento quitado de este navegador');
-    return;
+    toast('Movimiento archivado');
+  } catch (error) {
+    console.error('No se pudo archivar el movimiento:', error);
+    toast('No se pudo archivar el movimiento.', true);
   }
-  const { error } = await supabaseClient.from('casa_movimientos').update({ archivado: true }).eq('id', id).eq('hogar_id', currentMember.hogar_id);
-  if (error) { toast('No se pudo archivar el movimiento.', true); return; }
-  await refreshMovements();
-  recordMovementHistory(previousMovements, `archivar ${movement.description}`);
-  toast('Movimiento archivado');
 }
 function editMovement(id) {
   const movement = db.movements.find(item => item.id === id);
@@ -1024,5 +913,46 @@ document.getElementById('backupFileInput').addEventListener('change', async even
   event.target.value = '';
 });
 
-loadPublicData();
-
+document.getElementById('loginForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  const usernameInput = document.getElementById('loginUsername');
+  const passwordInput = document.getElementById('loginPassword');
+  const submit = document.getElementById('loginSubmit');
+  const message = document.getElementById('loginMessage');
+  submit.disabled = true;
+  submit.textContent = 'Entrando…';
+  message.textContent = '';
+  message.classList.remove('error');
+  try {
+    const auth = await requestApi('login', { username: usernameInput.value.trim(), password: passwordInput.value }, '');
+    setAuthSession(auth.sessionToken);
+    const loaded = await loadPublicData();
+    if (!loaded) throw new Error('No se pudo abrir la cuenta. Inténtalo de nuevo.');
+    passwordInput.value = '';
+  } catch (error) {
+    setAuthSession('');
+    message.textContent = error.status === 429
+      ? 'Se han hecho demasiados intentos. Espera unos minutos e inténtalo de nuevo.'
+      : error.status === 401 ? 'Usuario o contraseña incorrectos.'
+        : error.message || 'No se pudo iniciar sesión. Comprueba la conexión.';
+    message.classList.add('error');
+    passwordInput.value = '';
+  } finally {
+    submit.disabled = false;
+    submit.innerHTML = 'Entrar <span>→</span>';
+  }
+});
+document.getElementById('logoutAction').addEventListener('click', async () => {
+  try { await requestApi('logout'); } catch (error) { console.warn('No se pudo cerrar la sesión en el servidor.', error); }
+  setAuthSession('');
+  currentMember = null;
+  dataLoaded = false;
+  undoHistory = [];
+  redoHistory = [];
+  db = { openingBalance: 0, initialSavings: 0, initialConchiDebt: 0, initialTito: 0, initialSheila: 0, movements: [] };
+  updateHistoryButtons();
+  showAuthGate('Has cerrado la sesión.');
+  document.getElementById('loginForm').reset();
+});
+if (sessionToken) loadPublicData();
+else showAuthGate();
