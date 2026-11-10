@@ -263,6 +263,53 @@ function totals() {
     .reduce((sum, item) => sum + (item.type === 'ingreso' ? item.amount : -item.amount), 0);
   return { list, income, expense, expenses, balance };
 }
+function matchesFixedTemplateMovement(movement, template) {
+  if (movement.fixedTemplateId) return movement.fixedTemplateId === template.id;
+  if (movement.type !== template.type || movement.category !== template.category || movement.subcategory !== template.subcategory) return false;
+  const description = normalizeFixedDescription(movement.description);
+  if (template.id === 'luz-coche') return description.includes('luzcoche');
+  if (template.id === 'luz-total-energy') return !description.includes('luzcoche');
+  if (template.id === 'vodafone-lowi') return description.includes('vodafone') || description.includes('lowi');
+  if (template.id === 'redexis-glp') return description.includes('redexis');
+  if (template.id === 'ahorros-hucha') return description.includes('ahoroshucha');
+  if (template.id === 'prestamo-conchi') return description.includes('prestamoconchi');
+  if (template.id === 'hipoteca') return description.includes('hipoteca');
+  if (template.id === 'ibi-basura') return description.includes('ibiybasura') || description.includes('basura');
+  return normalizeFixedDescription(movement.description) === normalizeFixedDescription(template.description);
+}
+function recentYearAverage(yearTotals) {
+  const recent = [...yearTotals.entries()].sort((a, b) => b[0] - a[0]).slice(0, 3).map(([, amount]) => amount);
+  return recent.length ? recent.reduce((sum, amount) => sum + amount, 0) / recent.length : null;
+}
+function forecastExpenses(balance) {
+  const monthNumber = selectedMonth + 1;
+  const previousMovements = db.movements.filter(item => !item.archived && item.periodMonth === monthNumber && item.periodYear < selectedYear);
+  const fixedTemplates = fixedMonthlyTemplates().filter(template => template.type === 'gasto');
+  let pendingFixed = 0;
+
+  fixedTemplates.forEach(template => {
+    const alreadyApplied = db.movements.some(item => forCurrentPeriod(item) && matchesFixedTemplateMovement(item, template));
+    if (alreadyApplied) return;
+    const byYear = new Map();
+    previousMovements.filter(item => item.type === 'gasto' && matchesFixedTemplateMovement(item, template))
+      .forEach(item => byYear.set(item.periodYear, (byYear.get(item.periodYear) || 0) + item.amount));
+    const historicalAverage = recentYearAverage(byYear);
+    if (historicalAverage !== null) pendingFixed += historicalAverage;
+    else if (template.amount !== null && template.amount !== undefined) pendingFixed += Number(template.amount) || 0;
+    else if (template.id === 'luz-total-energy') pendingFixed += monthNumber === 12 ? 120 : monthNumber === 2 ? 90 : 60;
+  });
+
+  const variableByYear = new Map();
+  previousMovements.filter(item => item.type === 'gasto' && item.category !== 'Fijos')
+    .forEach(item => variableByYear.set(item.periodYear, (variableByYear.get(item.periodYear) || 0) + item.amount));
+  const expectedVariableTotal = recentYearAverage(variableByYear) || 0;
+  const variableAlreadyPaid = db.movements.filter(forCurrentPeriod)
+    .filter(item => item.type === 'gasto' && item.category !== 'Fijos')
+    .reduce((sum, item) => sum + item.amount, 0);
+  const pendingVariable = Math.max(0, expectedVariableTotal - variableAlreadyPaid);
+  const pending = pendingFixed + pendingVariable;
+  return { pending, projectedBalance: balance - pending };
+}
 function renderHouseholdBalances() {
   const titoAdds = db.movements
     .filter(item => item.type === 'ingreso' && item.person === 'Tito')
@@ -434,10 +481,12 @@ function render() {
   document.getElementById('monthPicker').value = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`;
   document.getElementById('periodText').textContent = `${monthName().toLocaleLowerCase('es-ES')} de ${selectedYear}`;
   document.getElementById('balanceValue').textContent = euro(result.balance);
+  const forecast = forecastExpenses(result.balance);
   document.getElementById('incomeValue').textContent = euro(result.income);
   document.getElementById('expenseValue').textContent = euro(result.expense);
   document.getElementById('netValue').textContent = euro(result.income - result.expense);
-  document.getElementById('balanceCaption').textContent = `Saldo inicial: ${euro(db.openingBalance)}`;
+  document.getElementById('balanceCaption').textContent = `Gastos aprox. que quedan en ${monthName().toLowerCase()}: ${euro(forecast.pending)}`;
+  document.getElementById('projectedBalance').textContent = euro(forecast.projectedBalance);
   document.getElementById('expenseCount').textContent = `${result.expenses.length} ${result.expenses.length === 1 ? 'movimiento' : 'movimientos'}`;
   renderHouseholdBalances();
   const byPerson = { Tito: 0, Sheila: 0, Varios: 0 };
@@ -638,11 +687,7 @@ function renderFixedMonthly() {
   if (!host) return;
   document.getElementById('fixedMonthLabel').textContent = `${monthName()} ${selectedYear}`;
   const rows = templates.map(template => {
-    const applied = db.movements.find(item => forCurrentPeriod(item) && (
-      item.fixedTemplateId === template.id || (!item.fixedTemplateId
-        && normalizeFixedDescription(item.description) === normalizeFixedDescription(template.description)
-        && item.type === template.type)
-    ));
+    const applied = db.movements.find(item => forCurrentPeriod(item) && matchesFixedTemplateMovement(item, template));
     const alreadyApplied = Boolean(applied);
     const details = template.type === 'ingreso'
       ? `Ingreso · ${template.person}`
