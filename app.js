@@ -288,10 +288,10 @@ function recentYearAverage(yearTotals) {
   const recent = [...yearTotals.entries()].sort((a, b) => b[0] - a[0]).slice(0, 3).map(([, amount]) => amount);
   return recent.length ? recent.reduce((sum, amount) => sum + amount, 0) / recent.length : null;
 }
-function forecastExpenses(balance) {
+function forecastExpenses(balance, periodYear = null, periodMonth = null, includePaidInPlan = false) {
   const forecastDate = new Date();
-  const forecastYear = forecastDate.getFullYear();
-  const forecastMonth = forecastDate.getMonth();
+  const forecastYear = periodYear ?? forecastDate.getFullYear();
+  const forecastMonth = periodMonth ?? forecastDate.getMonth();
   const monthNumber = forecastMonth + 1;
   const inForecastPeriod = item => item.periodYear === forecastYear && item.periodMonth === monthNumber;
   const currentPeriodMovements = db.movements.filter(item => !item.archived && inForecastPeriod(item));
@@ -300,12 +300,14 @@ function forecastExpenses(balance) {
   const matchesCategory = (category, subcategory) => item =>
     item.category === category && (subcategory === null || item.subcategory === subcategory);
   const plan = (label, expected, category, subcategory, note, predicate = matchesCategory(category, subcategory)) => {
-    if (expected > 0 && !paidExpenses.some(predicate)) expenses.push({ label, amount: expected, note });
+    if (expected > 0 && (includePaidInPlan || !paidExpenses.some(predicate))) {
+      expenses.push({ label, amount: expected, note, category });
+    }
   };
-  const budget = (label, expected, note, predicate) => {
+  const budget = (label, expected, note, predicate, category) => {
     const spent = paidExpenses.filter(predicate).reduce((sum, item) => sum + item.amount, 0);
-    const pending = Math.round((expected - spent) * 100) / 100;
-    if (pending > 0) expenses.push({ label, amount: pending, note });
+    const pending = includePaidInPlan ? expected : Math.round((expected - spent) * 100) / 100;
+    if (pending > 0) expenses.push({ label, amount: pending, note, category });
   };
 
   // Previsión basada en importes y ciclos indicados por la familia; no usa medias históricas.
@@ -322,14 +324,15 @@ function forecastExpenses(balance) {
       && item.amount > 0 && !normalizeFixedDescription(item.description).includes('luzcoche'));
   const carLightPaid = currentPeriodMovements.some(item => item.type === 'gasto' && item.category === 'Fijos'
     && item.subcategory === 'Electricidad' && normalizeFixedDescription(item.description).includes('luzcoche'));
-  if (!carLightPaid) expenses.push({ label: 'Ajuste luz del coche', amount: -30, note: 'Se resta como gasto negativo; no cuenta como ingreso.' });
+  if (includePaidInPlan || !carLightPaid) expenses.push({
+    label: 'Ajuste luz del coche', amount: -30, note: 'Se resta como gasto negativo; no cuenta como ingreso.', category: 'Fijos',
+  });
 
   if (monthNumber >= 3 && monthNumber <= 11) plan('IBI y basura', 67.61, 'Fijos', 'IBI y basura', 'Cuota mensual de marzo a noviembre.');
   plan('Comunicaciones (Vodafone / Lowi)', 28, 'Fijos', 'Comunicaciones', 'Factura mensual prevista: 28,00 €.');
   const butaneSeason = monthNumber >= 11 || monthNumber <= 3;
   const isGas = matchesCategory('Fijos', 'Gas');
-  const isGlp = item => item.fixedTemplateId === 'redexis-glp'
-    || /redexis|glp/.test(normalizeFixedDescription(item.description));
+  const isGlp = item => item.fixedTemplateId === 'redexis-glp' || /redexis|glp/.test(normalizeFixedDescription(item.description));
   if (monthNumber % 2 === 0) {
     plan('Gas (GLP)', 25, 'Fijos', 'Gas', 'Recibo bimensual previsto: 25,00 €.',
       item => isGas(item) && isGlp(item));
@@ -340,16 +343,10 @@ function forecastExpenses(balance) {
   }
   if (monthNumber === 3) plan('Seguro de la casa', 250, 'Fijos', 'Seguros', 'Pago anual previsto en marzo.');
 
-  const isSupermarket = matchesCategory('Comida', 'Supermercado');
-  if (forecastYear === 2026 && monthNumber === 11) {
-    const novemberBudgetStarts = Date.parse('2026-11-10T19:38:34.465+01:00');
-    budget('Supermercado', 150, 'Hasta 150,00 € más en noviembre. Las nuevas compras reducen lo pendiente.',
-      item => isSupermarket(item) && item.createdAt > novemberBudgetStarts);
-  } else {
-    budget('Supermercado', 350, 'Presupuesto mensual previsto de 350,00 €.',
-      isSupermarket);
-  }
-  budget('Ocio', 50, 'Presupuesto mensual previsto de 50,00 €.', matchesCategory('Ocio', null));
+  budget('Supermercado', 350, 'Presupuesto mensual previsto de 350,00 €; se descuentan las compras ya registradas.',
+    matchesCategory('Comida', 'Supermercado'), 'Comida');
+  budget('Ocio', 50, 'Presupuesto mensual previsto de 50,00 €.',
+    matchesCategory('Ocio', null), 'Ocio');
   const incomes = pendingIncomeTemplates(fixedMonthlyTemplates(forecastYear, forecastMonth), currentPeriodMovements);
   const expenseTotal = expenses.reduce((sum, item) => sum + item.amount, 0);
   const incomeTotal = incomes.reduce((sum, item) => sum + item.amount, 0);
@@ -671,6 +668,24 @@ function renderCategories(expenses) {
   const host = document.getElementById('categoryOverview');
   document.getElementById('emptyCategories').classList.toggle('show', !pairs.length);
   host.innerHTML = pairs.slice(0, 8).map(([name, amount]) => `<div class="category-item"><div class="category-title"><span>${escapeHtml(name)}</span><strong>${euro(amount)}</strong></div><div class="category-track"><i style="width:${pairs[0][1] ? Math.max(3, Math.abs(amount / pairs[0][1] * 100)) : 3}%"></i></div></div>`).join('');
+}
+function renderEstimatedCategoryForecast() {
+  const forecast = forecastExpenses(totals().balance, selectedYear, selectedMonth, true);
+  const totalsByCategory = {};
+  forecast.expenses.forEach(item => {
+    const category = item.category || 'Otros';
+    totalsByCategory[category] = (totalsByCategory[category] || 0) + item.amount;
+  });
+  const pairs = Object.entries(totalsByCategory).sort((a, b) => b[1] - a[1]);
+  const total = pairs.reduce((sum, [, amount]) => sum + amount, 0);
+  document.getElementById('estimatedCategoryMonth').textContent = monthName().toLowerCase() + ' de ' + selectedYear;
+  document.getElementById('estimatedCategoryTotal').textContent = euro(total);
+  document.getElementById('emptyEstimatedCategory').classList.toggle('show', !pairs.length);
+  const max = Math.max(1, ...pairs.map(([, amount]) => Math.abs(amount)));
+  document.getElementById('estimatedCategoryList').innerHTML = pairs.map(([category, amount]) =>
+    '<div class="estimated-category-row"><div><strong>' + escapeHtml(category) + '</strong><b>' + euro(amount)
+      + '</b></div><div class="category-bar-track"><i style="width:' + Math.max(2, Math.abs(amount) / max * 100)
+      + '%"></i></div></div>').join('');
 }
 function renderSecondaryViews(result) {
   const categoryExpenses = db.movements.filter(item => item.type === 'gasto'
