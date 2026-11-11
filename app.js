@@ -127,6 +127,9 @@ function fixedMonthlyTemplates(year = selectedYear, month = selectedMonth) {
     const installment = month - 1;
     items.push({ id: 'ibi-basura', description: `IBI y basura ${installment}/9`, type: 'gasto', category: 'Fijos', subcategory: 'IBI y basura', amount: 67.61 });
   }
+  if (month === 2) {
+    items.push({ id: 'seguro-casa', description: 'Seguro casa', type: 'gasto', category: 'Fijos', subcategory: 'Seguros', amount: 250 });
+  }
   return items;
 }
 function normalizeFixedDescription(value = '') {
