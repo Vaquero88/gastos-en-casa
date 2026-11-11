@@ -764,6 +764,7 @@ function renderSecondaryViews(result) {
     : `No hay gastos registrados en ${monthName().toLowerCase()} de ${selectedYear}.`;
   categoryEmpty.classList.toggle('show', !groupList.length);
   renderCategoryTrend();
+  renderEstimatedCategoryForecast();
   renderFixedMonthly();
 }
 
