@@ -933,7 +933,6 @@ function setType(type) {
   document.getElementById('category').required = !income;
   document.getElementById('subcategory').required = !income;
   document.getElementById('amount').min = income ? '0' : '-9999999';
-  document.getElementById('amountHint').hidden = income;
   document.getElementById('dialogTitle').textContent = editingId ? 'Editar movimiento' : income ? 'Añadir ingreso o aportación' : 'Añadir gasto';
 }
 function updateSubcategories(selected = '') {
