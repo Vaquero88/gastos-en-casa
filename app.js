@@ -691,10 +691,10 @@ function renderSecondaryViews(result) {
   const categoryExpenses = db.movements.filter(item => item.type === 'gasto'
     && item.periodYear === selectedYear
     && (categoryPeriodMode === 'year' || item.periodMonth === selectedMonth + 1));
+  const annualMonthsForAverage = selectedYear === new Date().getFullYear() ? new Date().getMonth() + 1 : 12;
   document.getElementById('categoryPeriodCaption').textContent = categoryPeriodMode === 'year'
-    ? `Todo ${selectedYear}`
-    : `${monthName().toLowerCase()} de ${selectedYear}`;
-  document.querySelectorAll('[data-category-period]').forEach(button => {
+    ? 'Todo ' + selectedYear + ' · media mensual entre ' + annualMonthsForAverage + (annualMonthsForAverage === 1 ? ' mes' : ' meses')
+    : monthName().toLowerCase() + ' de ' + selectedYear;  document.querySelectorAll('[data-category-period]').forEach(button => {
     const active = button.dataset.categoryPeriod === categoryPeriodMode;
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', String(active));
@@ -753,11 +753,17 @@ function renderSecondaryViews(result) {
     groups[category].subs[subcategory] = (groups[category].subs[subcategory] || 0) + item.amount;
   });
   const groupList = Object.entries(groups).sort((a, b) => b[1].total - a[1].total);
-  document.getElementById('categoryDetailList').innerHTML = groupList.map(([name, data]) => `
-    <article class="category-detail-card"><div class="category-detail-head"><span class="category-detail-icon">${name === 'Fijos' ? '⌂' : '✳'}</span>
-    <div><strong>${escapeHtml(name)}</strong><small>${Object.keys(data.subs).length} ${Object.keys(data.subs).length === 1 ? 'subcategoría' : 'subcategorías'}</small></div>
-    <b>${euro(data.total)}</b></div><div class="subcategory-breakdown">${Object.entries(data.subs).sort((a, b) => b[1] - a[1]).map(([subcategory, amount]) => `
-      <div><span>${escapeHtml(subcategory)}</span><strong>${euro(amount)}</strong></div>`).join('')}</div></article>`).join('');
+  const annualValues = amount => categoryPeriodMode === 'year'
+    ? '<span class="category-annual-values"><strong>' + euro(amount) + '</strong><small>Media/mes ' + euro(amount / annualMonthsForAverage) + '</small></span>'
+    : '<b>' + euro(amount) + '</b>';
+  document.getElementById('categoryDetailList').innerHTML = groupList.map(([name, data]) => {
+    const subcategories = Object.entries(data.subs).sort((a, b) => b[1] - a[1]).map(([subcategory, amount]) =>
+      '<div><span>' + escapeHtml(subcategory) + '</span>' + annualValues(amount) + '</div>').join('');
+    return '<article class="category-detail-card"><div class="category-detail-head"><span class="category-detail-icon">'
+      + (name === 'Fijos' ? '⌂' : '✳') + '</span><div><strong>' + escapeHtml(name) + '</strong><small>'
+      + Object.keys(data.subs).length + (Object.keys(data.subs).length === 1 ? ' subcategoría' : ' subcategorías')
+      + '</small></div>' + annualValues(data.total) + '</div><div class="subcategory-breakdown">' + subcategories + '</div></article>';
+  }).join('');
   const categoryEmpty = document.getElementById('emptyCategoryView');
   categoryEmpty.textContent = categoryPeriodMode === 'year'
     ? `No hay gastos registrados en ${selectedYear}.`
