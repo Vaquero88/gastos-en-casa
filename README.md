@@ -18,3 +18,12 @@ El repositorio contiene el código y el esquema, pero no contiene el libro de Ex
 
 El sitio se sirve desde GitHub Pages y los datos del hogar están habilitados para acceso anónimo de lectura y escritura en Supabase.
 
+
+
+## Instalar en Android
+
+1. Abre https://vaquero88.github.io/gastos-en-casa/ en Chrome para Android.
+2. Inicia sesión y abre el menú de Chrome (⋮); elige **Instalar aplicación** o **Añadir a pantalla de inicio**.
+3. Confirma. Casa en común aparecerá como una aplicación en el móvil.
+
+La app conserva los datos en Supabase y necesita conexión a internet para consultar y guardar movimientos. La caché local guarda la interfaz, no sustituye una copia de seguridad.

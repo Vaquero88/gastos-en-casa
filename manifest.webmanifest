@@ -1,0 +1,31 @@
+{
+  "id": "./",
+  "name": "Casa en común",
+  "short_name": "Casa común",
+  "description": "Gastos compartidos de casa",
+  "lang": "es",
+  "start_url": "./?origen=instalada",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f7f7f3",
+  "theme_color": "#f7f7f3",
+  "categories": [
+    "finance",
+    "utilities"
+  ],
+  "icons": [
+    {
+      "sizes": "192x192",
+      "src": "./app-icon-192.png",
+      "purpose": "any maskable",
+      "type": "image/png"
+    },
+    {
+      "sizes": "512x512",
+      "src": "./app-icon-512.png",
+      "purpose": "any maskable",
+      "type": "image/png"
+    }
+  ]
+}
