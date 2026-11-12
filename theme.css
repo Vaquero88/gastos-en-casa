@@ -310,3 +310,5 @@ body { background: #f4f0f8; color: #292438; }
 .category-detail-head > .category-annual-values { margin-left: auto; }
 .subcategory-breakdown .category-annual-values > strong { color: #50495c; font-size: 10px; }
 @media (max-width: 520px) { .category-annual-values { gap: 4px; } .category-annual-values > small { font-size: 7px; } }
+
+.subcategory-breakdown b { color: #50495c; font-size: 10px; }
