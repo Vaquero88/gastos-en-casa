@@ -694,7 +694,7 @@ function renderSecondaryViews(result) {
   const annualMonthsForAverage = selectedYear === new Date().getFullYear() ? new Date().getMonth() + 1 : 12;
   document.getElementById('categoryPeriodCaption').textContent = categoryPeriodMode === 'year'
     ? 'Todo ' + selectedYear + ' · media mensual entre ' + annualMonthsForAverage + (annualMonthsForAverage === 1 ? ' mes' : ' meses')
-    : monthName().toLowerCase() + ' de ' + selectedYear;  document.querySelectorAll('[data-category-period]').forEach(button => {
+    : monthName().toLowerCase() + ' de ' + selectedYear + ' · media comparada con ' + annualMonthsForAverage + (annualMonthsForAverage === 1 ? ' mes' : ' meses');  document.querySelectorAll('[data-category-period]').forEach(button => {
     const active = button.dataset.categoryPeriod === categoryPeriodMode;
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', String(active));
@@ -753,16 +753,30 @@ function renderSecondaryViews(result) {
     groups[category].subs[subcategory] = (groups[category].subs[subcategory] || 0) + item.amount;
   });
   const groupList = Object.entries(groups).sort((a, b) => b[1].total - a[1].total);
-  const annualValues = amount => categoryPeriodMode === 'year'
-    ? '<span class="category-annual-values"><strong>' + euro(amount) + '</strong><small>Media/mes ' + euro(amount / annualMonthsForAverage) + '</small></span>'
-    : '<b>' + euro(amount) + '</b>';
+  const averageCategoryTotals = {};
+  const averageSubcategoryTotals = {};
+  db.movements.filter(item => item.type === 'gasto' && item.periodYear === selectedYear
+    && (selectedYear !== new Date().getFullYear() || item.periodMonth <= annualMonthsForAverage))
+    .forEach(item => {
+      const category = item.category || 'Otros';
+      const subcategory = item.subcategory || 'Otros';
+      averageCategoryTotals[category] = (averageCategoryTotals[category] || 0) + item.amount;
+      const key = category + '|' + subcategory;
+      averageSubcategoryTotals[key] = (averageSubcategoryTotals[key] || 0) + item.amount;
+    });
+  const annualValues = (amount, averageTotal = amount) =>
+    '<span class="category-annual-values"><strong>' + euro(amount) + '</strong><small>Media/mes '
+      + euro(averageTotal / annualMonthsForAverage) + '</small></span>';
   document.getElementById('categoryDetailList').innerHTML = groupList.map(([name, data]) => {
     const subcategories = Object.entries(data.subs).sort((a, b) => b[1] - a[1]).map(([subcategory, amount]) =>
-      '<div><span>' + escapeHtml(subcategory) + '</span>' + annualValues(amount) + '</div>').join('');
+      '<div><span>' + escapeHtml(subcategory) + '</span>' + annualValues(amount,
+        categoryPeriodMode === 'year' ? amount : (averageSubcategoryTotals[name + '|' + subcategory] || 0)) + '</div>').join('');
     return '<article class="category-detail-card"><div class="category-detail-head"><span class="category-detail-icon">'
       + (name === 'Fijos' ? '⌂' : '✳') + '</span><div><strong>' + escapeHtml(name) + '</strong><small>'
       + Object.keys(data.subs).length + (Object.keys(data.subs).length === 1 ? ' subcategoría' : ' subcategorías')
-      + '</small></div>' + annualValues(data.total) + '</div><div class="subcategory-breakdown">' + subcategories + '</div></article>';
+      + '</small></div>' + annualValues(data.total,
+        categoryPeriodMode === 'year' ? data.total : (averageCategoryTotals[name] || 0))
+      + '</div><div class="subcategory-breakdown">' + subcategories + '</div></article>';
   }).join('');
   const categoryEmpty = document.getElementById('emptyCategoryView');
   categoryEmpty.textContent = categoryPeriodMode === 'year'
