@@ -303,3 +303,10 @@ body { background: #f4f0f8; color: #292438; }
 .estimated-category-row b { color: #40384c; white-space: nowrap; }
 .estimated-category-row .category-bar-track i { background: linear-gradient(90deg, #a58ac3, #75608f); }
 @media (max-width: 720px) { .estimated-category-panel { padding: 16px 13px; } .estimated-category-list { grid-template-columns: 1fr; } }
+
+.category-annual-values { display: flex; align-items: center; justify-content: flex-end; gap: 9px; white-space: nowrap; }
+.category-annual-values > strong { color: #4f3971; font-size: 11px; }
+.category-annual-values > small { color: #918b9b; font-size: 8px; font-weight: 500; }
+.category-detail-head > .category-annual-values { margin-left: auto; }
+.subcategory-breakdown .category-annual-values > strong { color: #50495c; font-size: 10px; }
+@media (max-width: 520px) { .category-annual-values { gap: 4px; } .category-annual-values > small { font-size: 7px; } }
