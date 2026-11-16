@@ -634,19 +634,43 @@ function renderMiniBars() {
     expenseBars.append(expenseBar);
   });
 }
+function movementIcon(item) {
+  const line = 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
+  if (item.type === 'ingreso') {
+    const mark = item.person === 'Tito' ? 'T' : item.person === 'Sheila' ? 'S' : '*';
+    return '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" ' + line
+      + '/><path d="M6 8c1.2 0 2-.8 2-1.5M18 16c-1.2 0-2 .8-2 1.5" ' + line + '/><circle cx="12" cy="12" r="3" '
+      + line + '/><text x="12" y="13.6" text-anchor="middle" font-family="Manrope,DM Sans,sans-serif" font-size="4.4" font-weight="800" fill="currentColor">' + mark + '</text></svg>';
+  }
+  const icons = {
+    Fijos: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7M5.5 9v11h13V9M9.5 20v-6h5v6" ' + line + '/></svg>',
+    Comida: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10a8 8 0 0 1 16 0H4ZM4 13h16M5 16h14M6 19h12a2 2 0 0 0 2-2H4a2 2 0 0 0 2 2Z" ' + line + '/><path d="M8 6h.01M12 5h.01M16 6h.01" ' + line + '/></svg>',
+    Ocio: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16l-8 8-8-8ZM12 12v7M8 21h8M12 19h5" ' + line + '/></svg>',
+    Hogar: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11v8M20 11v8M4 14h16v5H4zM7 14v-3a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v3M6 19v2M18 19v2" ' + line + '/></svg>',
+    Salud: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z" ' + line + '/></svg>',
+    Transporte: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" ' + line + '/><circle cx="12" cy="12" r="3" ' + line + '/><path d="m9.9 9.9-3.5-3.5M14.1 9.9l3.5-3.5M9.9 14.1l-3.5 3.5M14.1 14.1l3.5 3.5" ' + line + '/></svg>',
+    Animales: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10 5 6l-2 1v5l3 2M17 10l2-4 2 1v5l-3 2M6 13c0-3 2.5-5 6-5s6 2 6 5v4a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3zM9 14h.01M15 14h.01M10 17c1.2 1 2.8 1 4 0" ' + line + '/></svg>',
+    Otros: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4" ' + line + '/></svg>',
+  };
+  return icons[item.category] || icons.Otros;
+}
 function transactionRow(item) {
   const cashflow = item.type === 'ingreso' ? item.amount : -item.amount;
   const positive = cashflow >= 0;
-  const date = new Date(`${item.date}T12:00:00`).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
-  const iconClass = item.type === 'ingreso' ? 'income' : item.category === 'Fijos' ? 'fixed' : 'variable';
-  const icon = item.type === 'ingreso' ? '↗' : item.category === 'Fijos' ? '⌂' : '✳';
+  const date = new Date(item.date + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+  const categoryClasses = { Fijos: 'fixed', Comida: 'food', Ocio: 'leisure', Hogar: 'home', Salud: 'health', Transporte: 'transport', Animales: 'animals', Otros: 'other' };
+  const iconClass = item.type === 'ingreso' ? 'income' : (categoryClasses[item.category] || 'other');
+  const icon = movementIcon(item);
   const actions = currentMember?.rol === 'admin'
-    ? `<span class="transaction-actions"><button aria-label="Editar" data-edit="${item.id}">✎</button><button aria-label="Archivar" data-archive="${item.id}">×</button></span>`
+    ? '<span class="transaction-actions"><button aria-label="Editar" data-edit="' + item.id + '">✎</button><button aria-label="Archivar" data-archive="' + item.id + '">×</button></span>'
     : '';
-  return `<div class="transaction-row"><span class="transaction-icon ${iconClass}">${icon}</span>
-    <span class="transaction-main"><strong>${escapeHtml(item.description)}</strong><small>${date} · ${escapeHtml(item.type === 'ingreso' ? (item.person || 'Varios') : item.category)}</small></span>
-    <span class="transaction-category"><strong>${item.type === 'ingreso' ? 'Aportación' : escapeHtml(item.category)}</strong><small>${item.type === 'ingreso' ? 'Ingreso' : escapeHtml(item.subcategory || '')}</small></span>
-    <span class="transaction-amount ${positive ? 'income' : 'outflow'}">${positive ? '+' : '−'}${euro(Math.abs(item.amount))}</span>${actions}</div>`;
+  return '<div class="transaction-row"><span class="transaction-icon ' + iconClass + '" aria-hidden="true">' + icon + '</span>'
+    + '<span class="transaction-main"><strong>' + escapeHtml(item.description) + '</strong><small>' + date + ' · '
+    + escapeHtml(item.type === 'ingreso' ? (item.person || 'Varios') : item.category) + '</small></span>'
+    + '<span class="transaction-category"><strong>' + (item.type === 'ingreso' ? 'Aportación' : escapeHtml(item.category))
+    + '</strong><small>' + (item.type === 'ingreso' ? 'Ingreso' : escapeHtml(item.subcategory || ''))
+    + '</small></span><span class="transaction-amount ' + (positive ? 'income' : 'outflow') + '">'
+    + (positive ? '+' : '−') + euro(Math.abs(item.amount)) + '</span>' + actions + '</div>';
 }
 function bindTransactionActions(host) {
   host.querySelectorAll('[data-archive]').forEach(button => button.onclick = () => archiveMovement(button.dataset.archive));
