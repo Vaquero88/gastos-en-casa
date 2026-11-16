@@ -648,7 +648,7 @@ function movementIcon(item) {
     Ocio: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16l-8 8-8-8ZM12 12v7M8 21h8M12 19h5" ' + line + '/></svg>',
     Hogar: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11v8M20 11v8M4 14h16v5H4zM7 14v-3a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v3M6 19v2M18 19v2" ' + line + '/></svg>',
     Salud: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z" ' + line + '/></svg>',
-    Transporte: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" ' + line + '/><circle cx="12" cy="12" r="3" ' + line + '/><path d="m9.9 9.9-3.5-3.5M14.1 9.9l3.5-3.5M9.9 14.1l-3.5 3.5M14.1 14.1l3.5 3.5" ' + line + '/></svg>',
+    Transporte: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15.5V12l2-2 2-4h8l3 4h2l1 2v3.5H3Z" ' + line + '/><path d="M7 10h4V7H8.5L7 10ZM13 7v3h3l-2.2-3H13Z" ' + line + '/><circle cx="7" cy="16" r="2" ' + line + '/><circle cx="17" cy="16" r="2" ' + line + '/></svg>',
     Animales: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10 5 6l-2 1v5l3 2M17 10l2-4 2 1v5l-3 2M6 13c0-3 2.5-5 6-5s6 2 6 5v4a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3zM9 14h.01M15 14h.01M10 17c1.2 1 2.8 1 4 0" ' + line + '/></svg>',
     Otros: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4" ' + line + '/></svg>',
   };
