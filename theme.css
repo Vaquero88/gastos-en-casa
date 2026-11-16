@@ -312,3 +312,12 @@ body { background: #f4f0f8; color: #292438; }
 @media (max-width: 520px) { .category-annual-values { gap: 4px; } .category-annual-values > small { font-size: 7px; } }
 
 .subcategory-breakdown b { color: #50495c; font-size: 10px; }
+
+.transaction-icon svg { width: 18px; height: 18px; display: block; }
+.transaction-icon.food { background: #faf2dd; color: #a77c28; }
+.transaction-icon.leisure { background: #efe8f7; color: #7957a5; }
+.transaction-icon.home { background: #f2eee8; color: #82715b; }
+.transaction-icon.health { background: #e7f2eb; color: #50806a; }
+.transaction-icon.transport { background: #e8f0f4; color: #59758a; }
+.transaction-icon.animals { background: #f8ece8; color: #b56f65; }
+.transaction-icon.other { background: #eff0f2; color: #777880; }
