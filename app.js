@@ -644,7 +644,7 @@ function movementIcon(item) {
   }
   const icons = {
     Fijos: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7M5.5 9v11h13V9M9.5 20v-6h5v6" ' + line + '/></svg>',
-    Comida: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10a8 8 0 0 1 16 0H4ZM4 13h16M5 16h14M6 19h12a2 2 0 0 0 2-2H4a2 2 0 0 0 2 2Z" ' + line + '/><path d="M8 6h.01M12 5h.01M16 6h.01" ' + line + '/></svg>',
+    Comida: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.2 11.2a2 2 0 0 0 2 1.6h8.5a2 2 0 0 0 1.9-1.4L22 8H6" ' + line + '/><path d="M9 11h10M10 14h8" ' + line + '/><circle cx="10" cy="20" r="1" ' + line + '/><circle cx="18" cy="20" r="1" ' + line + '/></svg>',
     Ocio: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16l-8 8-8-8ZM12 12v7M8 21h8M12 19h5" ' + line + '/></svg>',
     Hogar: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11v8M20 11v8M4 14h16v5H4zM7 14v-3a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v3M6 19v2M18 19v2" ' + line + '/></svg>',
     Salud: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z" ' + line + '/></svg>',
