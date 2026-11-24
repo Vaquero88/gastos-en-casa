@@ -293,7 +293,6 @@ body { background: #f4f0f8; color: #292438; }
 .forecast-result { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; margin-top: 19px; padding: 13px; border-radius: 9px; background: #f2edf7; color: #76698a; font-size: 10px; }
 .forecast-result strong { color: #4f3971; font-size: 11px; }
 @media (max-width: 720px) { .top-actions { gap: 8px; } .history-actions { gap: 3px; } .history-button { padding: 5px 6px; font-size: 8px; } .logout-button { padding: 5px 7px; font-size: 8px; } .sidebar-bottom { display: none; } .mobile-backup-trigger { display: flex; border: 0; background: transparent; cursor: pointer; } .balance-card { height: 148px; padding: 12px; } .balance-forecast-result { align-items: flex-start; font-size: 7px; } .balance-forecast-result strong { font-size: 9px; } }
-
 .estimated-category-panel { margin-top: 15px; padding: 21px; }
 .estimated-category-panel .panel-heading > strong { color: #4f3971; font: 700 15px Manrope, sans-serif; white-space: nowrap; }
 .estimated-category-panel .panel-heading p { line-height: 1.5; }
@@ -303,16 +302,13 @@ body { background: #f4f0f8; color: #292438; }
 .estimated-category-row b { color: #40384c; white-space: nowrap; }
 .estimated-category-row .category-bar-track i { background: linear-gradient(90deg, #a58ac3, #75608f); }
 @media (max-width: 720px) { .estimated-category-panel { padding: 16px 13px; } .estimated-category-list { grid-template-columns: 1fr; } }
-
 .category-annual-values { display: flex; align-items: center; justify-content: flex-end; gap: 9px; white-space: nowrap; }
 .category-annual-values > strong { color: #4f3971; font-size: 11px; }
 .category-annual-values > small { color: #918b9b; font-size: 8px; font-weight: 500; }
 .category-detail-head > .category-annual-values { margin-left: auto; }
 .subcategory-breakdown .category-annual-values > strong { color: #50495c; font-size: 10px; }
 @media (max-width: 520px) { .category-annual-values { gap: 4px; } .category-annual-values > small { font-size: 7px; } }
-
 .subcategory-breakdown b { color: #50495c; font-size: 10px; }
-
 .transaction-icon svg { width: 18px; height: 18px; display: block; }
 .transaction-icon.food { background: #faf2dd; color: #a77c28; }
 .transaction-icon.leisure { background: #efe8f7; color: #7957a5; }
@@ -321,7 +317,6 @@ body { background: #f4f0f8; color: #292438; }
 .transaction-icon.transport { background: #e8f0f4; color: #59758a; }
 .transaction-icon.animals { background: #f8ece8; color: #b56f65; }
 .transaction-icon.other { background: #eff0f2; color: #777880; }
-
 .dashboard-overview-grid { min-height: 430px; align-items: stretch; }
 .dashboard-side-stack { min-width: 0; display: grid; grid-template-rows: minmax(155px, 1fr) minmax(200px, 1fr); gap: 14px; }
 .dashboard-side-stack .contribution-panel, .dashboard-side-stack .pending-payments-panel { min-height: 0; overflow: hidden; padding: 15px 16px; }
@@ -337,6 +332,11 @@ body { background: #f4f0f8; color: #292438; }
 .pending-payment-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid #f0ecf4; color: #625b70; font-size: 9px; }
 .pending-payment-row:first-child { border-top: 0; }
 .pending-payment-row strong { color: #40384c; font-size: 9px; white-space: nowrap; }
+.pending-payments-legend { margin-top: 3px; color: #938b9d !important; font-size: 8px !important; }
+.pending-payment-label { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.pending-payment-tag { padding: 2px 5px; border-radius: 999px; background: #eee8f5; color: #68547d; font-size: 7px; font-weight: 700; }
+.pending-approx-mark { color: #a26b23; font-weight: 800; }
 .pending-payments-panel .empty-category { margin-top: 8px; padding: 9px; font-size: 9px; }
 @media (max-width: 1100px) { .dashboard-overview-grid { min-height: 0; } .dashboard-side-stack { grid-template-rows: minmax(145px, auto) minmax(215px, auto); } }
 @media (max-width: 720px) { .dashboard-side-stack { grid-template-rows: auto auto; gap: 10px; } .dashboard-side-stack .contribution-panel { min-height: 150px; } .dashboard-side-stack .pending-payments-panel { min-height: 210px; } .pending-payments-list { max-height: 125px; } }
+
