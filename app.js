@@ -558,14 +558,20 @@ function render() {
   document.getElementById('expenseCount').textContent = `${result.expenses.length} ${result.expenses.length === 1 ? 'movimiento' : 'movimientos'}`;
   renderHouseholdBalances();
   const byPerson = { Tito: 0, Sheila: 0, Varios: 0 };
-  result.list.filter(item => item.type === 'ingreso').forEach(item => {
-    byPerson[item.person] = (byPerson[item.person] || 0) + item.amount;
+  const contributions = result.list.filter(item => item.type === 'ingreso');
+  contributions.forEach(item => {
+    const person = ['Tito', 'Sheila'].includes(item.person) ? item.person : 'Varios';
+    byPerson[person] += item.amount;
   });
   document.getElementById('contributionTotal').textContent = euro(result.income);
   document.getElementById('peopleList').innerHTML = ['Tito', 'Sheila', 'Varios'].map(name => `
     <div class="person-row"><span class="person-avatar ${name.toLowerCase()}">${name[0]}</span>
     <span class="person-name"><strong>${name}</strong><small>Aportación del mes</small></span>
     <span class="person-amount">${euro(byPerson[name] || 0)}</span>
+    <div class="person-history">${contributions.filter(item => (['Tito', 'Sheila'].includes(item.person) ? item.person : 'Varios') === name)
+      .sort((a, b) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt)
+      .map(item => `<div class="person-history-row"><time datetime="${escapeHtml(item.date)}">${new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short' }).format(new Date(`${item.date}T00:00:00`))}</time><strong>${euro(item.amount)}</strong></div>`)
+      .join('') || '<span class="person-history-empty">Sin aportaciones</span>'}</div>
     <span class="person-track"><i style="width:${result.income ? Math.min(100, Math.max(0, (byPerson[name] || 0) / result.income * 100)) : 0}%"></i></span></div>`).join('');
   renderMiniBars();
   renderTransactions(result.list);
