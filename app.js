@@ -299,15 +299,15 @@ function forecastExpenses(balance, periodYear = null, periodMonth = null, includ
   const paidExpenses = currentPeriodMovements.filter(item => item.type === 'gasto' && item.amount > 0);
   const matchesCategory = (category, subcategory) => item =>
     item.category === category && (subcategory === null || item.subcategory === subcategory);
-  const plan = (label, expected, category, subcategory, note, predicate = matchesCategory(category, subcategory)) => {
+  const plan = (label, expected, category, subcategory, note, predicate = matchesCategory(category, subcategory), approximate = false) => {
     if (expected > 0 && (includePaidInPlan || !paidExpenses.some(predicate))) {
-      expenses.push({ label, amount: expected, note, category });
+      expenses.push({ label, amount: expected, note, category, approximate });
     }
   };
   const budget = (label, expected, note, predicate, category) => {
     const spent = paidExpenses.filter(predicate).reduce((sum, item) => sum + item.amount, 0);
     const pending = includePaidInPlan ? expected : Math.round((expected - spent) * 100) / 100;
-    if (pending > 0) expenses.push({ label, amount: pending, note, category });
+    if (pending > 0) expenses.push({ label, amount: pending, note, category, approximate: true });
   };
 
   // Previsión basada en importes y ciclos indicados por la familia; no usa medias históricas.
@@ -321,7 +321,7 @@ function forecastExpenses(balance, periodYear = null, periodMonth = null, includ
   plan('Luz de la casa', winterElectricity ? 80 : 60, 'Fijos', 'Electricidad',
     'Media prevista: ' + (winterElectricity ? '80,00 € de octubre a marzo.' : '60,00 € de abril a septiembre.'),
     item => item.type === 'gasto' && item.category === 'Fijos' && item.subcategory === 'Electricidad'
-      && item.amount > 0 && !normalizeFixedDescription(item.description).includes('luzcoche'));
+      && item.amount > 0 && !normalizeFixedDescription(item.description).includes('luzcoche'), true);
   const carLightPaid = currentPeriodMovements.some(item => item.type === 'gasto' && item.category === 'Fijos'
     && item.subcategory === 'Electricidad' && normalizeFixedDescription(item.description).includes('luzcoche'));
   if (includePaidInPlan || !carLightPaid) expenses.push({
@@ -335,11 +335,11 @@ function forecastExpenses(balance, periodYear = null, periodMonth = null, includ
   const isGlp = item => item.fixedTemplateId === 'redexis-glp' || /redexis|glp/.test(normalizeFixedDescription(item.description));
   if (monthNumber % 2 === 0) {
     plan('Gas (GLP)', 25, 'Fijos', 'Gas', 'Recibo bimensual previsto: 25,00 €.',
-      item => isGas(item) && isGlp(item));
+      item => isGas(item) && isGlp(item), true);
   }
   if (butaneSeason) {
     plan('Gas (butano)', 20, 'Fijos', 'Gas', 'Bombona prevista: 20,00 €.',
-      item => isGas(item) && !isGlp(item));
+      item => isGas(item) && !isGlp(item), true);
   }
   if (monthNumber === 3) plan('Seguro de la casa', 250, 'Fijos', 'Seguros', 'Pago anual previsto en marzo.');
 
@@ -351,8 +351,7 @@ function forecastExpenses(balance, periodYear = null, periodMonth = null, includ
   const expenseTotal = expenses.reduce((sum, item) => sum + item.amount, 0);
   const incomeTotal = incomes.reduce((sum, item) => sum + item.amount, 0);
   return { expenses, incomes, expenseTotal, incomeTotal, projectedBalance: balance - expenseTotal + incomeTotal };
-}
-function pendingIncomeTemplates(templates, currentPeriodMovements) {
+}function pendingIncomeTemplates(templates, currentPeriodMovements) {
   return templates.filter(template => template.type === 'ingreso').flatMap(template => {
     const expected = Number(template.amount) || 0;
     const alreadyPaid = currentPeriodMovements.filter(item => matchesFixedTemplateMovement(item, template))
@@ -672,8 +671,7 @@ function transactionRow(item) {
     + '</strong><small>' + (item.type === 'ingreso' ? 'Ingreso' : escapeHtml(item.subcategory || ''))
     + '</small></span><span class="transaction-amount ' + (positive ? 'income' : 'outflow') + '">'
     + (positive ? '+' : '−') + euro(Math.abs(item.amount)) + '</span>' + actions + '</div>';
-}
-function bindTransactionActions(host) {
+}function bindTransactionActions(host) {
   host.querySelectorAll('[data-archive]').forEach(button => button.onclick = () => archiveMovement(button.dataset.archive));
   host.querySelectorAll('[data-edit]').forEach(button => button.onclick = () => editMovement(button.dataset.edit));
 }
@@ -690,12 +688,16 @@ function renderPendingPayments(forecast, year = selectedYear, month = selectedMo
   const pending = forecast.expenses.filter(item => item.amount > 0);
   const total = pending.reduce((sum, item) => sum + item.amount, 0);
   document.getElementById('pendingPaymentsMonth').textContent = MONTHS[month] + ' ' + year;
-  document.getElementById('pendingPaymentsTotal').textContent = euro(total);
+  document.getElementById('pendingPaymentsTotal').textContent = (pending.some(item => item.approximate) ? '≈ ' : '') + euro(total);
   document.getElementById('emptyPendingPayments').classList.toggle('show', !pending.length);
-  document.getElementById('pendingPaymentsList').innerHTML = pending.map(item =>
-    '<div class="pending-payment-row"><span>' + escapeHtml(item.label) + '</span><strong>' + euro(item.amount) + '</strong></div>').join('');
+  document.getElementById('pendingPaymentsList').innerHTML = pending.map(item => {
+    const fixed = item.category === 'Fijos';
+    return '<div class="pending-payment-row"><span class="pending-payment-label">' + escapeHtml(item.label)
+      + (fixed ? '<small class="pending-payment-tag">Fijo</small>' : '')
+      + '</span><strong>' + (item.approximate ? '<span class="pending-approx-mark" title="Importe aproximado" aria-label="Importe aproximado">≈ </span>' : '')
+      + euro(item.amount) + '</strong></div>';
+  }).join('');
 }
-
 function renderCategories(expenses) {
   const totalsByCategory = {};
   expenses.forEach(item => totalsByCategory[item.category] = (totalsByCategory[item.category] || 0) + item.amount);
@@ -812,8 +814,7 @@ function renderSecondaryViews(result) {
       + '</small></div>' + annualValues(data.total,
         categoryPeriodMode === 'year' ? data.total : (averageCategoryTotals[name] || 0))
       + '</div><div class="subcategory-breakdown">' + subcategories + '</div></article>';
-  }).join('');
-  const categoryEmpty = document.getElementById('emptyCategoryView');
+  }).join('');  const categoryEmpty = document.getElementById('emptyCategoryView');
   categoryEmpty.textContent = categoryPeriodMode === 'year'
     ? `No hay gastos registrados en ${selectedYear}.`
     : `No hay gastos registrados en ${monthName().toLowerCase()} de ${selectedYear}.`;
@@ -1196,3 +1197,4 @@ document.getElementById('logoutAction').addEventListener('click', async () => {
 });
 if (sessionToken) loadPublicData();
 else showAuthGate();
+
