@@ -321,3 +321,22 @@ body { background: #f4f0f8; color: #292438; }
 .transaction-icon.transport { background: #e8f0f4; color: #59758a; }
 .transaction-icon.animals { background: #f8ece8; color: #b56f65; }
 .transaction-icon.other { background: #eff0f2; color: #777880; }
+
+.dashboard-overview-grid { min-height: 430px; align-items: stretch; }
+.dashboard-side-stack { min-width: 0; display: grid; grid-template-rows: minmax(155px, 1fr) minmax(200px, 1fr); gap: 14px; }
+.dashboard-side-stack .contribution-panel, .dashboard-side-stack .pending-payments-panel { min-height: 0; overflow: hidden; padding: 15px 16px; }
+.dashboard-side-stack .contribution-total { padding: 8px 0 6px; }
+.dashboard-side-stack .people-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; padding: 5px 0 0; }
+.dashboard-side-stack .person-row { display: grid; grid-template-columns: 25px minmax(0, 1fr); gap: 2px 6px; padding: 3px 2px; }
+.dashboard-side-stack .person-avatar { grid-row: span 2; width: 25px; height: 25px; }
+.dashboard-side-stack .person-name strong { font-size: 9px; }
+.dashboard-side-stack .person-name small, .dashboard-side-stack .person-track { display: none; }
+.dashboard-side-stack .person-amount { grid-column: 2; text-align: left; font-size: 9px; }
+.pending-payments-panel .panel-heading > strong { color: #4f3971; font: 700 12px Manrope, sans-serif; white-space: nowrap; }
+.pending-payments-list { max-height: 132px; overflow-y: auto; margin-top: 8px; }
+.pending-payment-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid #f0ecf4; color: #625b70; font-size: 9px; }
+.pending-payment-row:first-child { border-top: 0; }
+.pending-payment-row strong { color: #40384c; font-size: 9px; white-space: nowrap; }
+.pending-payments-panel .empty-category { margin-top: 8px; padding: 9px; font-size: 9px; }
+@media (max-width: 1100px) { .dashboard-overview-grid { min-height: 0; } .dashboard-side-stack { grid-template-rows: minmax(145px, auto) minmax(215px, auto); } }
+@media (max-width: 720px) { .dashboard-side-stack { grid-template-rows: auto auto; gap: 10px; } .dashboard-side-stack .contribution-panel { min-height: 150px; } .dashboard-side-stack .pending-payments-panel { min-height: 210px; } .pending-payments-list { max-height: 125px; } }
