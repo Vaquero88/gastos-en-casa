@@ -321,12 +321,16 @@ body { background: #f4f0f8; color: #292438; }
 .dashboard-side-stack { min-width: 0; display: grid; grid-template-rows: minmax(155px, 1fr) minmax(200px, 1fr); gap: 14px; }
 .dashboard-side-stack .contribution-panel, .dashboard-side-stack .pending-payments-panel { min-height: 0; overflow: hidden; padding: 15px 16px; }
 .dashboard-side-stack .contribution-total { padding: 8px 0 6px; }
-.dashboard-side-stack .people-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; padding: 5px 0 0; }
-.dashboard-side-stack .person-row { display: grid; grid-template-columns: 25px minmax(0, 1fr); gap: 2px 6px; padding: 3px 2px; }
-.dashboard-side-stack .person-avatar { grid-row: span 2; width: 25px; height: 25px; }
+.dashboard-side-stack .people-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; gap: 5px; padding: 5px 0 0; }
+.dashboard-side-stack .person-row { display: grid; grid-template-columns: 25px minmax(0, 1fr); grid-template-rows: auto auto auto; align-content: start; gap: 2px 6px; min-width: 0; padding: 3px 2px; }
+.dashboard-side-stack .person-avatar { grid-column: 1; grid-row: 1 / span 2; width: 25px; height: 25px; }
 .dashboard-side-stack .person-name strong { font-size: 9px; }
 .dashboard-side-stack .person-name small, .dashboard-side-stack .person-track { display: none; }
 .dashboard-side-stack .person-amount { grid-column: 2; text-align: left; font-size: 9px; }
+.dashboard-side-stack .person-history { grid-column: 1 / -1; display: grid; gap: 2px; max-height: 47px; overflow-y: auto; margin-top: 3px; padding-top: 3px; border-top: 1px solid #f0ecf4; }
+.person-history-row { display: flex; justify-content: space-between; gap: 4px; color: #81798d; font-size: 7px; line-height: 1.35; }
+.person-history-row strong { color: #514866; font-size: 7px; white-space: nowrap; }
+.person-history-empty { color: #aaa3b1; font-size: 7px; }
 .pending-payments-panel .panel-heading > strong { color: #4f3971; font: 700 12px Manrope, sans-serif; white-space: nowrap; }
 .pending-payments-list { max-height: 132px; overflow-y: auto; margin-top: 8px; }
 .pending-payment-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid #f0ecf4; color: #625b70; font-size: 9px; }
