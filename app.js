@@ -549,6 +549,7 @@ function render() {
   document.getElementById('periodText').textContent = `${monthName().toLocaleLowerCase('es-ES')} de ${selectedYear}`;
   document.getElementById('balanceValue').textContent = euro(result.balance);
   const forecast = forecastExpenses(result.balance);
+  renderPendingPayments(forecastExpenses(result.balance, selectedYear, selectedMonth));
   document.getElementById('incomeValue').textContent = euro(result.income);
   document.getElementById('expenseValue').textContent = euro(result.expense);
   document.getElementById('netValue').textContent = euro(result.income - result.expense);
@@ -685,6 +686,16 @@ function renderTransactions(list) {
   host.style.display = list.length ? 'block' : 'none';
   bindTransactionActions(host);
 }
+function renderPendingPayments(forecast, year = selectedYear, month = selectedMonth) {
+  const pending = forecast.expenses.filter(item => item.amount > 0);
+  const total = pending.reduce((sum, item) => sum + item.amount, 0);
+  document.getElementById('pendingPaymentsMonth').textContent = MONTHS[month] + ' ' + year;
+  document.getElementById('pendingPaymentsTotal').textContent = euro(total);
+  document.getElementById('emptyPendingPayments').classList.toggle('show', !pending.length);
+  document.getElementById('pendingPaymentsList').innerHTML = pending.map(item =>
+    '<div class="pending-payment-row"><span>' + escapeHtml(item.label) + '</span><strong>' + euro(item.amount) + '</strong></div>').join('');
+}
+
 function renderCategories(expenses) {
   const totalsByCategory = {};
   expenses.forEach(item => totalsByCategory[item.category] = (totalsByCategory[item.category] || 0) + item.amount);
