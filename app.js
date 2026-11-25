@@ -982,6 +982,9 @@ async function openMovement(type = 'gasto', item = null) {
   if (item?.category) category.value = item.category;
   updateSubcategories(item?.subcategory || '');
   setType(item?.type || type);
+  document.getElementById('categorySearch').value = item?.type === 'gasto' && item.category
+    ? `${item.category} · ${item.subcategory || ''}` : '';
+  closeCategorySuggestions();
   document.querySelectorAll('.form-error').forEach(element => element.remove());
   dialog.showModal();
   setTimeout(() => document.getElementById('description').focus(), 50);
@@ -992,6 +995,7 @@ function setType(type) {
   const income = type === 'ingreso';
   document.getElementById('categoryField').style.display = income ? 'none' : 'grid';
   document.getElementById('subcategoryField').style.display = income ? 'none' : 'grid';
+  document.getElementById('categorySearchField').style.display = income ? 'none' : 'grid';
   document.getElementById('personField').style.display = income ? 'grid' : 'none';
   document.getElementById('category').required = !income;
   document.getElementById('subcategory').required = !income;
@@ -1004,6 +1008,38 @@ function updateSubcategories(selected = '') {
   const options = CATEGORIES[category] || [];
   select.innerHTML = '<option value="">Elige una subcategoría</option>' + options.map(value => `<option>${escapeHtml(value)}</option>`).join('');
   if (options.includes(selected)) select.value = selected;
+}
+function normalizeCategorySearch(value) {
+  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es-ES').trim();
+}
+function closeCategorySuggestions() {
+  const input = document.getElementById('categorySearch');
+  const list = document.getElementById('categorySuggestions');
+  list.hidden = true;
+  list.innerHTML = '';
+  input.setAttribute('aria-expanded', 'false');
+  input.removeAttribute('aria-activedescendant');
+}
+function renderCategorySuggestions(query) {
+  const input = document.getElementById('categorySearch');
+  const list = document.getElementById('categorySuggestions');
+  const term = normalizeCategorySearch(query);
+  if (!term) { closeCategorySuggestions(); return; }
+  const options = Object.entries(CATEGORIES).flatMap(([category, subcategories]) =>
+    subcategories.map(subcategory => ({ category, subcategory }))
+  ).filter(item => normalizeCategorySearch(item.category).includes(term)
+    || normalizeCategorySearch(item.subcategory).includes(term))
+    .sort((a, b) => {
+      const aText = normalizeCategorySearch(a.subcategory), bText = normalizeCategorySearch(b.subcategory);
+      const aRank = aText === term ? 0 : aText.startsWith(term) ? 1 : normalizeCategorySearch(a.category) === term ? 2 : 3;
+      const bRank = bText === term ? 0 : bText.startsWith(term) ? 1 : normalizeCategorySearch(b.category) === term ? 2 : 3;
+      return aRank - bRank || a.category.localeCompare(b.category, 'es') || a.subcategory.localeCompare(b.subcategory, 'es');
+    });
+  list.innerHTML = options.length ? options.map((item, index) =>
+    `<button type="button" class="category-suggestion" id="categorySuggestion${index}" role="option" aria-selected="false" data-category="${escapeHtml(item.category)}" data-subcategory="${escapeHtml(item.subcategory)}"><strong>${escapeHtml(item.category)}</strong><span>· ${escapeHtml(item.subcategory)}</span></button>`
+  ).join('') : '<p class="category-suggestions-empty" role="status">No hay categorías o subcategorías con ese nombre.</p>';
+  list.hidden = false;
+  input.setAttribute('aria-expanded', 'true');
 }
 function closeDialog() { dialog.close(); editingId = null; }
 async function saveMovement(event) {
@@ -1087,7 +1123,27 @@ document.getElementById('forecastDialog').addEventListener('click', event => {
 document.getElementById('closeDialog').onclick = closeDialog;
 document.getElementById('cancelDialog').onclick = closeDialog;
 document.querySelectorAll('.type-option').forEach(button => button.onclick = () => setType(button.dataset.type));
-document.getElementById('category').addEventListener('change', () => updateSubcategories());
+document.getElementById('category').addEventListener('change', () => {
+  updateSubcategories();
+  document.getElementById('categorySearch').value = '';
+  closeCategorySuggestions();
+});
+document.getElementById('categorySearch').addEventListener('input', event => renderCategorySuggestions(event.target.value));
+document.getElementById('categorySearch').addEventListener('keydown', event => {
+  if (event.key === 'ArrowDown') {
+    const first = document.querySelector('#categorySuggestions .category-suggestion');
+    if (first) { event.preventDefault(); first.focus(); }
+  } else if (event.key === 'Escape') closeCategorySuggestions();
+});
+document.getElementById('categorySuggestions').addEventListener('click', event => {
+  const option = event.target.closest('.category-suggestion');
+  if (!option) return;
+  const category = option.dataset.category, subcategory = option.dataset.subcategory;
+  document.getElementById('category').value = category;
+  updateSubcategories(subcategory);
+  document.getElementById('categorySearch').value = `${category} · ${subcategory}`;
+  closeCategorySuggestions();
+});
 form.addEventListener('submit', saveMovement);
 document.getElementById('prevMonth').onclick = () => moveMonth(-1);
 document.getElementById('nextMonth').onclick = () => moveMonth(1);
