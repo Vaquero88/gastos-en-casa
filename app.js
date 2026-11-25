@@ -140,6 +140,9 @@ function escapeHtml(value = '') {
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
   })[char]);
 }
+function categoryLabel(category = '') {
+  return category === 'Comida' ? 'Alimentación y consumo' : category;
+}
 function toast(message, isError = false) {
   const element = document.createElement('div');
   element.className = 'toast';
@@ -614,7 +617,7 @@ function renderCategoryTrend() {
   const renderBars = (rows, colorClass, emptyLabel) => {
     const max = Math.max(1, ...rows.map(([, amount]) => Math.abs(amount)));
     if (!rows.length) return `<p class="category-bars-empty">${emptyLabel}</p>`;
-    return rows.map(([label, amount]) => `<div class="category-bar-row"><div class="category-bar-label"><span>${escapeHtml(label)}</span><strong>${euro(amount)}</strong></div><div class="category-bar-track"><i class="${colorClass}" style="width:${Math.max(0, Math.min(100, Math.abs(amount) / max * 100))}%"></i></div></div>`).join('');
+  return rows.map(([label, amount]) => `<div class="category-bar-row"><div class="category-bar-label"><span>${escapeHtml(categoryLabel(label))}</span><strong>${euro(amount)}</strong></div><div class="category-bar-track"><i class="${colorClass}" style="width:${Math.max(0, Math.min(100, Math.abs(amount) / max * 100))}%"></i></div></div>`).join('');
   };
   chart.innerHTML = `<section class="category-bar-group"><h3>Gastos por categoría</h3>${renderBars(expenses, 'expense-category-bar', 'No hay gastos en este periodo.')}</section>
     <section class="category-bar-group"><h3>Ingresos por persona</h3>${renderBars(incomes, 'income-category-bar', 'No hay ingresos en este periodo.')}</section>`;
@@ -673,8 +676,8 @@ function transactionRow(item) {
     : '';
   return '<div class="transaction-row"><span class="transaction-icon ' + iconClass + '" aria-hidden="true">' + icon + '</span>'
     + '<span class="transaction-main"><strong>' + escapeHtml(item.description) + '</strong><small>' + date + ' · '
-    + escapeHtml(item.type === 'ingreso' ? (item.person || 'Varios') : item.category) + '</small></span>'
-    + '<span class="transaction-category"><strong>' + (item.type === 'ingreso' ? 'Aportación' : escapeHtml(item.category))
+    + escapeHtml(item.type === 'ingreso' ? (item.person || 'Varios') : categoryLabel(item.category)) + '</small></span>'
+    + '<span class="transaction-category"><strong>' + (item.type === 'ingreso' ? 'Aportación' : escapeHtml(categoryLabel(item.category)))
     + '</strong><small>' + (item.type === 'ingreso' ? 'Ingreso' : escapeHtml(item.subcategory || ''))
     + '</small></span><span class="transaction-amount ' + (positive ? 'income' : 'outflow') + '">'
     + (positive ? '+' : '−') + euro(Math.abs(item.amount)) + '</span>' + actions + '</div>';
@@ -711,7 +714,7 @@ function renderCategories(expenses) {
   const pairs = Object.entries(totalsByCategory).sort((a, b) => b[1] - a[1]);
   const host = document.getElementById('categoryOverview');
   document.getElementById('emptyCategories').classList.toggle('show', !pairs.length);
-  host.innerHTML = pairs.slice(0, 8).map(([name, amount]) => `<div class="category-item"><div class="category-title"><span>${escapeHtml(name)}</span><strong>${euro(amount)}</strong></div><div class="category-track"><i style="width:${pairs[0][1] ? Math.max(3, Math.abs(amount / pairs[0][1] * 100)) : 3}%"></i></div></div>`).join('');
+  host.innerHTML = pairs.slice(0, 8).map(([name, amount]) => `<div class="category-item"><div class="category-title"><span>${escapeHtml(categoryLabel(name))}</span><strong>${euro(amount)}</strong></div><div class="category-track"><i style="width:${pairs[0][1] ? Math.max(3, Math.abs(amount / pairs[0][1] * 100)) : 3}%"></i></div></div>`).join('');
 }
 function renderEstimatedCategoryForecast() {
   const forecast = forecastExpenses(totals().balance, selectedYear, selectedMonth, true);
@@ -727,7 +730,7 @@ function renderEstimatedCategoryForecast() {
   document.getElementById('emptyEstimatedCategory').classList.toggle('show', !pairs.length);
   const max = Math.max(1, ...pairs.map(([, amount]) => Math.abs(amount)));
   document.getElementById('estimatedCategoryList').innerHTML = pairs.map(([category, amount]) =>
-    '<div class="estimated-category-row"><div><strong>' + escapeHtml(category) + '</strong><b>' + euro(amount)
+    '<div class="estimated-category-row"><div><strong>' + escapeHtml(categoryLabel(category)) + '</strong><b>' + euro(amount)
       + '</b></div><div class="category-bar-track"><i style="width:' + Math.max(2, Math.abs(amount) / max * 100)
       + '%"></i></div></div>').join('');
 }
@@ -752,7 +755,7 @@ function renderSecondaryViews(result) {
     .filter(item => (movementFilter === 'todos' || item.type === movementFilter)
       && (!day || Number(item.date.slice(-2)) === Number(day))
       && (movementCategories === null || (item.type === 'gasto' && movementCategories.has(item.category)))
-      && (!search || `${item.description} ${item.category} ${item.subcategory} ${item.person || ''}`.toLocaleLowerCase('es-ES').includes(search)))
+      && (!search || `${item.description} ${categoryLabel(item.category)} ${item.subcategory} ${item.person || ''}`.toLocaleLowerCase('es-ES').includes(search)))
     .sort((a, b) => sortDirection * (a.date.localeCompare(b.date) || a.createdAt - b.createdAt));
   allHost.innerHTML = allRows.map(transactionRow).join('');
   allEmpty.classList.toggle('show', allRows.length === 0);
@@ -816,7 +819,7 @@ function renderSecondaryViews(result) {
       '<div><span>' + escapeHtml(subcategory) + '</span>' + annualValues(amount,
         categoryPeriodMode === 'year' ? amount : (averageSubcategoryTotals[name + '|' + subcategory] || 0)) + '</div>').join('');
     return '<article class="category-detail-card"><div class="category-detail-head"><span class="category-detail-icon">'
-      + (name === 'Fijos' ? '⌂' : '✳') + '</span><div><strong>' + escapeHtml(name) + '</strong><small>'
+      + (name === 'Fijos' ? '⌂' : '✳') + '</span><div><strong>' + escapeHtml(categoryLabel(name)) + '</strong><small>'
       + Object.keys(data.subs).length + (Object.keys(data.subs).length === 1 ? ' subcategoría' : ' subcategorías')
       + '</small></div>' + annualValues(data.total,
         categoryPeriodMode === 'year' ? data.total : (averageCategoryTotals[name] || 0))
@@ -974,7 +977,7 @@ async function openMovement(type = 'gasto', item = null) {
   period.value = `${periodYear}-${String(periodMonth).padStart(2, '0')}`;
   document.getElementById('date').value = item?.date || dateForInput();
   const category = document.getElementById('category');
-  category.innerHTML = Object.keys(CATEGORIES).map(name => `<option>${escapeHtml(name)}</option>`).join('');
+  category.innerHTML = Object.keys(CATEGORIES).map(name => `<option value="${escapeHtml(name)}">${escapeHtml(categoryLabel(name))}</option>`).join('');
   document.getElementById('description').value = item?.description || '';
   document.getElementById('amount').value = item?.amount ?? '';
   document.getElementById('notes').value = item?.notes || '';
@@ -983,7 +986,7 @@ async function openMovement(type = 'gasto', item = null) {
   updateSubcategories(item?.subcategory || '');
   setType(item?.type || type);
   document.getElementById('categorySearch').value = item?.type === 'gasto' && item.category
-    ? `${item.category} · ${item.subcategory || ''}` : '';
+      ? `${categoryLabel(item.category)} · ${item.subcategory || ''}` : '';
   closeCategorySuggestions();
   document.querySelectorAll('.form-error').forEach(element => element.remove());
   dialog.showModal();
@@ -1027,16 +1030,17 @@ function renderCategorySuggestions(query) {
   if (!term) { closeCategorySuggestions(); return; }
   const options = Object.entries(CATEGORIES).flatMap(([category, subcategories]) =>
     subcategories.map(subcategory => ({ category, subcategory }))
-  ).filter(item => normalizeCategorySearch(item.category).includes(term)
+  ).filter(item => normalizeCategorySearch(categoryLabel(item.category)).includes(term)
     || normalizeCategorySearch(item.subcategory).includes(term))
     .sort((a, b) => {
       const aText = normalizeCategorySearch(a.subcategory), bText = normalizeCategorySearch(b.subcategory);
-      const aRank = aText === term ? 0 : aText.startsWith(term) ? 1 : normalizeCategorySearch(a.category) === term ? 2 : 3;
-      const bRank = bText === term ? 0 : bText.startsWith(term) ? 1 : normalizeCategorySearch(b.category) === term ? 2 : 3;
+      const aCategory = normalizeCategorySearch(categoryLabel(a.category)), bCategory = normalizeCategorySearch(categoryLabel(b.category));
+      const aRank = aText === term ? 0 : aText.startsWith(term) ? 1 : aCategory === term ? 2 : 3;
+      const bRank = bText === term ? 0 : bText.startsWith(term) ? 1 : bCategory === term ? 2 : 3;
       return aRank - bRank || a.category.localeCompare(b.category, 'es') || a.subcategory.localeCompare(b.subcategory, 'es');
     });
   list.innerHTML = options.length ? options.map((item, index) =>
-    `<button type="button" class="category-suggestion" id="categorySuggestion${index}" role="option" aria-selected="false" data-category="${escapeHtml(item.category)}" data-subcategory="${escapeHtml(item.subcategory)}"><strong>${escapeHtml(item.category)}</strong><span>· ${escapeHtml(item.subcategory)}</span></button>`
+    `<button type="button" class="category-suggestion" id="categorySuggestion${index}" role="option" aria-selected="false" data-category="${escapeHtml(item.category)}" data-subcategory="${escapeHtml(item.subcategory)}"><strong>${escapeHtml(categoryLabel(item.category))}</strong><span>· ${escapeHtml(item.subcategory)}</span></button>`
   ).join('') : '<p class="category-suggestions-empty" role="status">No hay categorías o subcategorías con ese nombre.</p>';
   list.hidden = false;
   input.setAttribute('aria-expanded', 'true');
@@ -1141,7 +1145,7 @@ document.getElementById('categorySuggestions').addEventListener('click', event =
   const category = option.dataset.category, subcategory = option.dataset.subcategory;
   document.getElementById('category').value = category;
   updateSubcategories(subcategory);
-  document.getElementById('categorySearch').value = `${category} · ${subcategory}`;
+  document.getElementById('categorySearch').value = `${categoryLabel(category)} · ${subcategory}`;
   closeCategorySuggestions();
 });
 form.addEventListener('submit', saveMovement);
@@ -1156,7 +1160,7 @@ document.getElementById('monthPicker').addEventListener('change', event => {
   render();
 });
 document.getElementById('movementDay').innerHTML += Array.from({ length: 31 }, (_, index) => `<option value="${index + 1}">${index + 1}</option>`).join('');
-document.getElementById('categoryFilters').innerHTML = `<button type="button" class="category-filter active" data-category-filter="TODOS" aria-pressed="true">TODOS</button><button type="button" class="category-filter" data-category-filter="GASTOS" aria-pressed="false">GASTOS</button><button type="button" class="category-filter" data-category-filter="INGRESOS" aria-pressed="false">INGRESOS</button>` + Object.keys(CATEGORIES).map(category => `<button type="button" class="category-filter active" data-category-filter="${escapeHtml(category)}" aria-pressed="true">${escapeHtml(category)}</button>`).join('');
+document.getElementById('categoryFilters').innerHTML = `<button type="button" class="category-filter active" data-category-filter="TODOS" aria-pressed="true">TODOS</button><button type="button" class="category-filter" data-category-filter="GASTOS" aria-pressed="false">GASTOS</button><button type="button" class="category-filter" data-category-filter="INGRESOS" aria-pressed="false">INGRESOS</button>` + Object.keys(CATEGORIES).map(category => `<button type="button" class="category-filter active" data-category-filter="${escapeHtml(category)}" aria-pressed="true">${escapeHtml(categoryLabel(category))}</button>`).join('');
 document.querySelectorAll('[data-category-filter]').forEach(button => button.addEventListener('click', () => {
   const category = button.dataset.categoryFilter;
   if (category === 'TODOS') { movementCategories = null; movementFilter = 'todos'; }
