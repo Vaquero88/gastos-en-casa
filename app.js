@@ -347,7 +347,7 @@ function forecastExpenses(balance, periodYear = null, periodMonth = null, includ
   }
   if (monthNumber === 3) plan('Seguro de la casa', 250, 'Fijos', 'Seguros', 'Pago anual previsto en marzo.');
 
-  budget('Supermercado', 350, 'Presupuesto mensual previsto de 350,00 €; se descuentan las compras ya registradas.',
+  budget('Supermercado', 300, 'Presupuesto mensual previsto de 300,00 €; se descuentan las compras ya registradas.',
     matchesCategory('Comida', 'Supermercado'), 'Comida');
   budget('Ocio', 50, 'Presupuesto mensual previsto de 50,00 €.',
     matchesCategory('Ocio', null), 'Ocio');
