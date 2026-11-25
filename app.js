@@ -296,11 +296,12 @@ function forecastExpenses(balance, periodYear = null, periodMonth = null, includ
   const inForecastPeriod = item => item.periodYear === forecastYear && item.periodMonth === monthNumber;
   const currentPeriodMovements = db.movements.filter(item => !item.archived && inForecastPeriod(item));
   const expenses = [];
-  const paidExpenses = currentPeriodMovements.filter(item => item.type === 'gasto' && item.amount > 0);
+  const registeredExpenses = currentPeriodMovements.filter(item => item.type === 'gasto');
+  const paidExpenses = registeredExpenses.filter(item => item.amount > 0);
   const matchesCategory = (category, subcategory) => item =>
     item.category === category && (subcategory === null || item.subcategory === subcategory);
   const plan = (label, expected, category, subcategory, note, predicate = matchesCategory(category, subcategory), approximate = false) => {
-    if (expected > 0 && (includePaidInPlan || !paidExpenses.some(predicate))) {
+    if (expected > 0 && (includePaidInPlan || !registeredExpenses.some(predicate))) {
       expenses.push({ label, amount: expected, note, category, approximate });
     }
   };
@@ -693,7 +694,7 @@ function renderTransactions(list) {
 function renderPendingPayments(forecast, year = selectedYear, month = selectedMonth) {
   const pending = forecast.expenses.filter(item => item.amount > 0);
   const total = pending.reduce((sum, item) => sum + item.amount, 0);
-  document.getElementById('pendingPaymentsMonth').textContent = MONTHS[month] + ' ' + year;
+  document.getElementById('pendingPaymentsTitle').textContent = `Previsión de pagos ${MONTHS[month]} ${year}`;
   document.getElementById('pendingPaymentsTotal').textContent = (pending.some(item => item.approximate) ? '≈ ' : '') + euro(total);
   document.getElementById('emptyPendingPayments').classList.toggle('show', !pending.length);
   document.getElementById('pendingPaymentsList').innerHTML = pending.map(item => {
